@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
 
@@ -14,10 +15,13 @@ export default withAuth(
     callbacks: {
       authorized({ req, token }) {
         const { pathname } = req.nextUrl;
-        if (pathname === "/admin/login") return true;
+        if (pathname.startsWith("/admin/login")) return true;
         if (pathname.startsWith("/admin")) return !!token;
         return true;
       },
+    },
+    pages: {
+      signIn: "/admin/login",
     },
   }
 );
