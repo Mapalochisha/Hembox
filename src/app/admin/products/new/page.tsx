@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
@@ -18,16 +18,22 @@ export default function NewProductPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Basic fields
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState("DRAFT");
+  const [categories, setCategories] = useState<{ id: string; name: string; parentId: string | null }[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 
-  // Variants
   const [variants, setVariants] = useState<Variant[]>([
     { sku: "", price: "", comparePrice: "", inventory: "0", attributes: [] },
   ]);
+
+  useEffect(() => {
+    fetch("/api/admin/categories")
+      .then((r) => r.json())
+      .then((data) => setCategories(data));
+  }, []);
 
   function generateSlug(val: string) {
     return val.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
@@ -36,6 +42,12 @@ export default function NewProductPage() {
   function handleNameChange(val: string) {
     setName(val);
     setSlug(generateSlug(val));
+  }
+
+  function toggleCategory(id: string) {
+    setSelectedCategories((prev) =>
+      prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]
+    );
   }
 
   function addVariant() {
@@ -80,7 +92,7 @@ export default function NewProductPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name, slug, description, status,
+          name, slug, description, status, selectedCategories,
           variants: variants.map((v) => ({
             ...v,
             price: parseFloat(v.price),
@@ -107,7 +119,6 @@ export default function NewProductPage() {
 
   return (
     <div className="max-w-3xl">
-      {/* Header */}
       <div className="flex items-center gap-4 mb-6">
         <Link href="/admin/products" className="text-gray-400 hover:text-gray-600 transition-colors">
           <ArrowLeft size={20} />
@@ -122,50 +133,29 @@ export default function NewProductPage() {
         {/* Basic Info */}
         <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-4">
           <h2 className="font-semibold text-[#2D2D2D]">Basic Information</h2>
-
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Product Name</label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => handleNameChange(e.target.value)}
-              required
+            <input type="text" value={name} onChange={(e) => handleNameChange(e.target.value)} required
               placeholder="e.g. Classic White T-Shirt"
-              className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-[#2D2D2D]"
-            />
+              className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-[#2D2D2D]" />
           </div>
-
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Slug (URL)</label>
-            <input
-              type="text"
-              value={slug}
-              onChange={(e) => setSlug(e.target.value)}
-              required
+            <input type="text" value={slug} onChange={(e) => setSlug(e.target.value)} required
               placeholder="classic-white-t-shirt"
-              className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-[#2D2D2D]"
-            />
+              className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-[#2D2D2D]" />
             <p className="text-xs text-gray-400 mt-1">Auto-generated from name. Used in the product URL.</p>
           </div>
-
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Description</label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={4}
+            <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={4}
               placeholder="Describe the product..."
-              className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-[#2D2D2D] resize-none"
-            />
+              className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-[#2D2D2D] resize-none" />
           </div>
-
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Status</label>
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-              className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-[#2D2D2D] bg-white"
-            >
+            <select value={status} onChange={(e) => setStatus(e.target.value)}
+              className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-[#2D2D2D] bg-white">
               <option value="DRAFT">Draft</option>
               <option value="ACTIVE">Active</option>
               <option value="ARCHIVED">Archived</option>
@@ -173,17 +163,37 @@ export default function NewProductPage() {
           </div>
         </div>
 
+        {/* Categories */}
+        <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-3">
+          <h2 className="font-semibold text-[#2D2D2D]">Categories</h2>
+          {categories.length === 0 ? (
+            <p className="text-sm text-gray-400">No categories found. Create categories first.</p>
+          ) : (
+            <div className="grid grid-cols-2 gap-2">
+              {categories.map((cat) => (
+                <label key={cat.id} className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={selectedCategories.includes(cat.id)}
+                    onChange={() => toggleCategory(cat.id)}
+                    className="w-4 h-4 rounded border-gray-300 accent-[#2D2D2D]"
+                  />
+                  <span className={`text-sm ${cat.parentId ? "text-gray-500 pl-3" : "text-gray-700 font-medium"}`}>
+                    {cat.parentId ? `└ ${cat.name}` : cat.name}
+                  </span>
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* Variants */}
         <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="font-semibold text-[#2D2D2D]">Variants & Pricing</h2>
-            <button
-              type="button"
-              onClick={addVariant}
-              className="flex items-center gap-1.5 text-xs font-medium text-gray-600 border border-gray-200 px-3 py-1.5 rounded-md hover:bg-gray-50 transition-colors"
-            >
-              <Plus size={12} />
-              Add Variant
+            <button type="button" onClick={addVariant}
+              className="flex items-center gap-1.5 text-xs font-medium text-gray-600 border border-gray-200 px-3 py-1.5 rounded-md hover:bg-gray-50 transition-colors">
+              <Plus size={12} /> Add Variant
             </button>
           </div>
 
@@ -197,84 +207,47 @@ export default function NewProductPage() {
                   </button>
                 )}
               </div>
-
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">SKU</label>
-                  <input
-                    type="text"
-                    value={variant.sku}
-                    onChange={(e) => updateVariant(vi, "sku", e.target.value)}
-                    required
+                  <input type="text" value={variant.sku} onChange={(e) => updateVariant(vi, "sku", e.target.value)} required
                     placeholder="HB-001-S"
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-[#2D2D2D]"
-                  />
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-[#2D2D2D]" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Inventory</label>
-                  <input
-                    type="number"
-                    value={variant.inventory}
-                    onChange={(e) => updateVariant(vi, "inventory", e.target.value)}
-                    min="0"
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-[#2D2D2D]"
-                  />
+                  <input type="number" value={variant.inventory} onChange={(e) => updateVariant(vi, "inventory", e.target.value)} min="0"
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-[#2D2D2D]" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Price (K)</label>
-                  <input
-                    type="number"
-                    value={variant.price}
-                    onChange={(e) => updateVariant(vi, "price", e.target.value)}
-                    required
-                    min="0"
-                    step="0.01"
+                  <input type="number" value={variant.price} onChange={(e) => updateVariant(vi, "price", e.target.value)} required min="0" step="0.01"
                     placeholder="0.00"
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-[#2D2D2D]"
-                  />
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-[#2D2D2D]" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Compare Price (K)</label>
-                  <input
-                    type="number"
-                    value={variant.comparePrice}
-                    onChange={(e) => updateVariant(vi, "comparePrice", e.target.value)}
-                    min="0"
-                    step="0.01"
+                  <input type="number" value={variant.comparePrice} onChange={(e) => updateVariant(vi, "comparePrice", e.target.value)} min="0" step="0.01"
                     placeholder="0.00"
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-[#2D2D2D]"
-                  />
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-[#2D2D2D]" />
                 </div>
               </div>
-
-              {/* Attributes */}
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-xs font-medium text-gray-600">Attributes (Size, Colour, etc.)</label>
-                  <button
-                    type="button"
-                    onClick={() => addAttribute(vi)}
-                    className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1"
-                  >
+                  <button type="button" onClick={() => addAttribute(vi)}
+                    className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1">
                     <Plus size={10} /> Add
                   </button>
                 </div>
                 {variant.attributes.map((attr, ai) => (
                   <div key={ai} className="flex gap-2 mb-2">
-                    <input
-                      type="text"
-                      value={attr.key}
-                      onChange={(e) => updateAttribute(vi, ai, "key", e.target.value)}
+                    <input type="text" value={attr.key} onChange={(e) => updateAttribute(vi, ai, "key", e.target.value)}
                       placeholder="Size"
-                      className="flex-1 px-3 py-1.5 text-xs border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-[#2D2D2D]"
-                    />
-                    <input
-                      type="text"
-                      value={attr.value}
-                      onChange={(e) => updateAttribute(vi, ai, "value", e.target.value)}
+                      className="flex-1 px-3 py-1.5 text-xs border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-[#2D2D2D]" />
+                    <input type="text" value={attr.value} onChange={(e) => updateAttribute(vi, ai, "value", e.target.value)}
                       placeholder="M"
-                      className="flex-1 px-3 py-1.5 text-xs border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-[#2D2D2D]"
-                    />
+                      className="flex-1 px-3 py-1.5 text-xs border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-[#2D2D2D]" />
                     <button type="button" onClick={() => removeAttribute(vi, ai)} className="text-red-400 hover:text-red-600">
                       <Trash2 size={12} />
                     </button>
@@ -289,16 +262,13 @@ export default function NewProductPage() {
           <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-4 py-3">{error}</p>
         )}
 
-        {/* Actions */}
         <div className="flex items-center gap-3">
-          <button
-            type="submit"
-            disabled={loading}
-            className="px-6 py-2.5 bg-[#2D2D2D] text-white text-sm font-medium rounded-md hover:bg-black disabled:opacity-50 transition-colors"
-          >
+          <button type="submit" disabled={loading}
+            className="px-6 py-2.5 bg-[#2D2D2D] text-white text-sm font-medium rounded-md hover:bg-black disabled:opacity-50 transition-colors">
             {loading ? "Saving..." : "Save Product"}
           </button>
-          <Link href="/admin/products" className="px-6 py-2.5 text-sm font-medium text-gray-600 border border-gray-200 rounded-md hover:bg-gray-50 transition-colors">
+          <Link href="/admin/products"
+            className="px-6 py-2.5 text-sm font-medium text-gray-600 border border-gray-200 rounded-md hover:bg-gray-50 transition-colors">
             Cancel
           </Link>
         </div>

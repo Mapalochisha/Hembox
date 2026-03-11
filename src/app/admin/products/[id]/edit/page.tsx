@@ -25,31 +25,42 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState("DRAFT");
   const [variants, setVariants] = useState<Variant[]>([]);
+  const [categories, setCategories] = useState<{ id: string; name: string; parentId: string | null }[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 
   useEffect(() => {
-    fetch(`/api/admin/products/${params.id}`)
-      .then((r) => r.json())
-      .then((data) => {
-        setName(data.name);
-        setSlug(data.slug);
-        setDescription(data.description ?? "");
-        setStatus(data.status);
-        setVariants(
-          data.variants.map((v: any) => ({
-            id: v.id,
-            sku: v.sku,
-            price: v.price.toString(),
-            comparePrice: v.comparePrice?.toString() ?? "",
-            inventory: v.inventory.toString(),
-            attributes: Object.entries(v.attributes ?? {}).map(([key, value]) => ({
-              key,
-              value: value as string,
-            })),
-          }))
-        );
-        setFetching(false);
-      });
+    Promise.all([
+      fetch(`/api/admin/products/${params.id}`).then((r) => r.json()),
+      fetch("/api/admin/categories").then((r) => r.json()),
+    ]).then(([data, cats]) => {
+      setName(data.name);
+      setSlug(data.slug);
+      setDescription(data.description ?? "");
+      setStatus(data.status);
+      setVariants(
+        data.variants.map((v: any) => ({
+          id: v.id,
+          sku: v.sku,
+          price: v.price.toString(),
+          comparePrice: v.comparePrice?.toString() ?? "",
+          inventory: v.inventory.toString(),
+          attributes: Object.entries(v.attributes ?? {}).map(([key, value]) => ({
+            key,
+            value: value as string,
+          })),
+        }))
+      );
+      setSelectedCategories(data.categories.map((c: any) => c.categoryId));
+      setCategories(cats);
+      setFetching(false);
+    });
   }, [params.id]);
+
+  function toggleCategory(id: string) {
+    setSelectedCategories((prev) =>
+      prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]
+    );
+  }
 
   function addVariant() {
     setVariants([...variants, { sku: "", price: "", comparePrice: "", inventory: "0", attributes: [] }]);
@@ -93,7 +104,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name, slug, description, status,
+          name, slug, description, status, selectedCategories,
           variants: variants.map((v) => ({
             id: v.id,
             sku: v.sku,
@@ -146,16 +157,15 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
             <p className="text-gray-500 text-sm mt-0.5">{name}</p>
           </div>
         </div>
-        <button
-          onClick={handleDelete}
-          className="flex items-center gap-2 px-4 py-2 text-red-600 border border-red-200 text-sm font-medium rounded-md hover:bg-red-50 transition-colors"
-        >
+        <button onClick={handleDelete}
+          className="flex items-center gap-2 px-4 py-2 text-red-600 border border-red-200 text-sm font-medium rounded-md hover:bg-red-50 transition-colors">
           <Trash2 size={14} />
           Delete
         </button>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Basic Info */}
         <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-4">
           <h2 className="font-semibold text-[#2D2D2D]">Basic Information</h2>
           <div>
@@ -184,6 +194,31 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
           </div>
         </div>
 
+        {/* Categories */}
+        <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-3">
+          <h2 className="font-semibold text-[#2D2D2D]">Categories</h2>
+          {categories.length === 0 ? (
+            <p className="text-sm text-gray-400">No categories found.</p>
+          ) : (
+            <div className="grid grid-cols-2 gap-2">
+              {categories.map((cat) => (
+                <label key={cat.id} className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={selectedCategories.includes(cat.id)}
+                    onChange={() => toggleCategory(cat.id)}
+                    className="w-4 h-4 rounded border-gray-300 accent-[#2D2D2D]"
+                  />
+                  <span className={`text-sm ${cat.parentId ? "text-gray-500 pl-3" : "text-gray-700 font-medium"}`}>
+                    {cat.parentId ? `└ ${cat.name}` : cat.name}
+                  </span>
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Variants */}
         <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="font-semibold text-[#2D2D2D]">Variants & Pricing</h2>
@@ -227,7 +262,8 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-xs font-medium text-gray-600">Attributes</label>
-                  <button type="button" onClick={() => addAttribute(vi)} className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1">
+                  <button type="button" onClick={() => addAttribute(vi)}
+                    className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1">
                     <Plus size={10} /> Add
                   </button>
                 </div>

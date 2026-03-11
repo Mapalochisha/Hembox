@@ -26,13 +26,12 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json();
-    const { name, slug, description, status, variants } = body;
+    const { name, slug, description, status, variants, selectedCategories } = body;
 
     if (!name || !slug) {
       return NextResponse.json({ error: "Name and slug are required." }, { status: 400 });
     }
 
-    // Check slug is unique
     const existing = await db.product.findUnique({ where: { slug } });
     if (existing) {
       return NextResponse.json({ error: "A product with this slug already exists." }, { status: 400 });
@@ -53,8 +52,13 @@ export async function POST(req: Request) {
             attributes:   v.attributes ?? {},
           })),
         },
+        categories: {
+          create: (selectedCategories ?? []).map((categoryId: string) => ({
+            categoryId,
+          })),
+        },
       },
-      include: { variants: true },
+      include: { variants: true, categories: true },
     });
 
     return NextResponse.json(product, { status: 201 });

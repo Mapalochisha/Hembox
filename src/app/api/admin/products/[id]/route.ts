@@ -9,7 +9,12 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
 
   const product = await db.product.findUnique({
     where: { id: params.id },
-    include: { variants: true, images: true, categories: { include: { category: true } }, tags: { include: { tag: true } } },
+    include: {
+      variants: true,
+      images: true,
+      categories: { include: { category: true } },
+      tags: { include: { tag: true } },
+    },
   });
 
   if (!product) return NextResponse.json({ error: "Product not found" }, { status: 404 });
@@ -22,9 +27,8 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
   try {
     const body = await req.json();
-    const { name, slug, description, status, variants } = body;
+    const { name, slug, description, status, variants, selectedCategories } = body;
 
-    // Update product basic info
     const product = await db.product.update({
       where: { id: params.id },
       data: { name, slug, description, status },
@@ -55,6 +59,17 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
           },
         });
       }
+    }
+
+    // Sync categories — delete all then recreate
+    await db.productCategory.deleteMany({ where: { productId: params.id } });
+    if (selectedCategories?.length) {
+      await db.productCategory.createMany({
+        data: selectedCategories.map((categoryId: string) => ({
+          productId: params.id,
+          categoryId,
+        })),
+      });
     }
 
     return NextResponse.json(product);
