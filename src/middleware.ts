@@ -1,29 +1,30 @@
-export const dynamic = "force-dynamic";
-import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { getToken } from "next-auth/jwt";
 
-export default withAuth(
-  function middleware(req) {
-    const { pathname } = req.nextUrl;
-    const token = req.nextauth.token;
-    if (pathname === "/admin/login" && token) {
+export async function middleware(req: NextRequest) {
+  const { pathname } = req.nextUrl;
+
+  const token = await getToken({
+    req,
+    secret: process.env.NEXTAUTH_SECRET,
+  });
+
+  if (pathname === "/admin/login") {
+    if (token) {
       return NextResponse.redirect(new URL("/admin", req.url));
     }
     return NextResponse.next();
-  },
-  {
-    callbacks: {
-      authorized({ req, token }) {
-        const { pathname } = req.nextUrl;
-        if (pathname.startsWith("/admin/login")) return true;
-        if (pathname.startsWith("/admin")) return !!token;
-        return true;
-      },
-    },
-    pages: {
-      signIn: "/admin/login",
-    },
   }
-);
+
+  if (pathname.startsWith("/admin")) {
+    if (!token) {
+      return NextResponse.redirect(new URL("/admin/login", req.url));
+    }
+    return NextResponse.next();
+  }
+
+  return NextResponse.next();
+}
 
 export const config = { matcher: ["/admin/:path*"] };
