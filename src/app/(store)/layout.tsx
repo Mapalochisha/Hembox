@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { ShoppingCart } from "lucide-react";
+import CartDrawer from "@/components/store/CartDrawer";
+import CartIcon from "@/components/store/CartIcon";
 
 export default function StoreLayout({ children }: { children: React.ReactNode }) {
   return (
     <div style={{ fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif" }} className="bg-white text-[#111] min-h-screen">
-      
+
       {/* Top utility bar */}
       <div className="bg-[#111] text-white px-10 py-1.5 flex justify-between items-center text-xs tracking-widest">
         <div className="flex gap-4 opacity-60">
@@ -18,7 +19,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
       </div>
 
       {/* Glassy Nav */}
-      <nav className="sticky top-0 z-50 px-10 flex items-center justify-between h-14"
+      <nav className="sticky top-0 z-40 px-10 flex items-center justify-between h-14"
         style={{
           backdropFilter: "blur(16px)",
           WebkitBackdropFilter: "blur(16px)",
@@ -27,8 +28,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
           boxShadow: "0 2px 24px rgba(0,0,0,0.06)",
         }}>
         <div className="flex items-center gap-2">
-          <ShoppingCart size={16} />
-          <Link href="/" className="font-black text-sm tracking-widest uppercase">HemBox</Link>
+          <Link href="/" className="font-black text-sm tracking-widest uppercase">🛒 HemBox</Link>
         </div>
         <div className="flex gap-8 items-center">
           {[
@@ -37,18 +37,18 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
             { label: "Men", href: "/categories/men" },
             { label: "Women", href: "/categories/women" },
             { label: "Kids", href: "/categories/kids" },
-            { label: "Contact", href: "/contact" },
           ].map(item => (
             <Link key={item.label} href={item.href}
               className="text-xs tracking-widest uppercase font-medium opacity-70 hover:opacity-100 transition-opacity">
               {item.label}
             </Link>
           ))}
-          <Link href="/cart" className="relative">
-            <ShoppingCart size={18} />
-          </Link>
+          <CartIcon />
         </div>
       </nav>
+
+      {/* Cart Drawer */}
+      <CartDrawer />
 
       {/* Page content */}
       {children}

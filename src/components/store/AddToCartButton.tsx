@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useCart } from "@/components/store/CartProvider";
 
 interface Variant {
   id: string;
@@ -14,28 +15,44 @@ interface Variant {
 interface Product {
   id: string;
   name: string;
+  slug: string;
   variants: Variant[];
+  images: { url: string; isPrimary: boolean }[];
 }
 
 export default function AddToCartButton({ product }: { product: Product }) {
+  const { addItem } = useCart();
   const [selectedVariant, setSelectedVariant] = useState<Variant | null>(
     product.variants.length === 1 ? product.variants[0] : null
   );
   const [added, setAdded] = useState(false);
 
-  const sizes = product.variants
-    .map(v => ({ variant: v, size: v.attributes?.Size ?? v.attributes?.size ?? v.sku }))
-    .filter(v => v.size);
+  const sizes = product.variants.map(v => ({
+    variant: v,
+    size: v.attributes?.Size ?? v.attributes?.size ?? v.sku,
+  }));
+
+  const primaryImage = product.images.find(i => i.isPrimary)?.url ?? product.images[0]?.url ?? null;
 
   function handleAddToCart() {
     if (!selectedVariant) return;
+    addItem({
+      productId: product.id,
+      variantId: selectedVariant.id,
+      name: product.name,
+      slug: product.slug,
+      image: primaryImage,
+      price: Number(selectedVariant.price),
+      comparePrice: selectedVariant.comparePrice ? Number(selectedVariant.comparePrice) : null,
+      sku: selectedVariant.sku,
+      attributes: selectedVariant.attributes ?? {},
+    });
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
   }
 
   return (
     <div className="space-y-4">
-      {/* Size selector */}
       {sizes.length > 1 && (
         <div>
           <p className="text-[10px] tracking-[3px] uppercase opacity-40 mb-3">Select Size</p>
@@ -58,10 +75,7 @@ export default function AddToCartButton({ product }: { product: Product }) {
         </div>
       )}
 
-      {/* Add to cart */}
-      <button
-        onClick={handleAddToCart}
-        disabled={!selectedVariant || added}
+      <button onClick={handleAddToCart} disabled={!selectedVariant || added}
         className={`w-full py-4 text-xs tracking-widest uppercase font-bold transition-colors rounded
           ${added
             ? "bg-green-700 text-white"
@@ -72,7 +86,6 @@ export default function AddToCartButton({ product }: { product: Product }) {
         {added ? "✓ Added to Cart" : !selectedVariant ? "Select a Size" : "Add to Cart"}
       </button>
 
-      {/* Wishlist */}
       <button className="w-full py-4 text-xs tracking-widest uppercase font-bold border border-[#111] hover:bg-gray-50 transition-colors rounded">
         Add to Wishlist
       </button>

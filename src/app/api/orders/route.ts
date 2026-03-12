@@ -1,0 +1,83 @@
+import { db } from "@/lib/db";
+import { NextResponse } from "next/server";
+
+export const dynamic = "force-dynamic";
+
+function generateOrderNumber() {
+  const timestamp = Date.now().toString(36).toUpperCase();
+  const random = Math.random().toString(36).slice(2, 6).toUpperCase();
+  return `HB-${timestamp}-${random}`;
+}
+
+export async function POST(req: Request) {
+  try {
+    const body = await req.json();
+    const { items, shipping, subtotal, shippingCost, total } = body;
+
+    if (!items?.length) {
+      return NextResponse.json({ error: "No items in order" }, { status: 400 });
+    }
+
+    const orderNumber = generateOrderNumber();
+
+    // Find or create customer by email
+    let customer = await db.customer.findUnique({
+      where: { email: shipping.email },
+    });
+
+    if (!customer) {
+      customer = await db.customer.create({
+        data: {
+            email: shipping.email,
+            name: shipping.name,
+            phone: shipping.phone,
+        },
+      });
+    }
+
+    // Create the order
+    const order = await db.order.create({
+      data: {
+        orderNumber,
+        customerId: customer.id,
+        status: "PENDING",
+        paymentStatus: "PENDING",
+        subtotal,
+        shippingCost,
+        total,
+        guestName: shipping.name,
+        guestEmail: shipping.email,
+        notes: shipping.notes || null,
+        shippingAddress: {
+          address: shipping.address,
+          city: shipping.city,
+          province: shipping.province,
+          phone: shipping.phone,
+        },
+        items: {
+          create: items.map((item: any) => ({
+            productId: item.productId,
+            variantId: item.variantId,
+            quantity: item.quantity,
+            priceAtPurchase: item.price,
+            variantSnapshot: {
+              name: item.name,
+              sku: item.sku,
+              price: item.price,
+              attributes: item.attributes,
+            },
+          })),
+        },
+      },
+    });
+
+    return NextResponse.json({ orderNumber: order.orderNumber, orderId: order.id });
+  } catch (err: any) {
+    console.error("Order error:", err);
+    return NextResponse.json({ error: err.message ?? "Failed to create order" }, { status: 500 });
+  }
+}
+
+export async function GET() {
+  return NextResponse.json({ error: "Method not allowed" }, { status: 405 });
+}
