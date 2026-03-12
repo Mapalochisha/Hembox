@@ -207,7 +207,7 @@ export default function CheckoutPage() {
                 <p className="text-sm font-semibold">{form.firstName} {form.lastName}</p>
                 <p className="text-xs opacity-60 mt-1">{form.address}, {form.city}, {form.province}</p>
                 <p className="text-xs opacity-60">{form.email} · {form.phone}</p>
-                {form.notes && <p className="text-xs opacity-40 mt-2 italic">"{form.notes}"</p>}
+                {form.notes && <p className="text-xs opacity-40 mt-2 italic">&ldquo;{form.notes}&rdquo;</p>}
               </div>
 
               {/* Items */}
