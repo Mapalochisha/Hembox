@@ -1,7 +1,6 @@
+import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { redirect } from "next/navigation";
-import Link from "next/link";
 import {
   LayoutDashboard,
   Package,
@@ -28,13 +27,14 @@ export default async function AdminLayout({
   children: React.ReactNode;
 }) {
   const session = await getServerSession(authOptions);
-  if (!session) redirect("/admin/login");
+
+  if (!session) {
+    return <>{children}</>;
+  }
 
   return (
     <div className="min-h-screen bg-[#F5F5F0] flex">
-      {/* Sidebar */}
       <aside className="w-60 bg-[#2D2D2D] text-white flex flex-col fixed h-full z-10">
-        {/* Logo */}
         <div className="px-6 py-5 border-b border-white/10">
           <div className="flex items-center gap-2">
             <Store size={20} className="text-white/70" />
@@ -42,8 +42,6 @@ export default async function AdminLayout({
           </div>
           <p className="text-white/40 text-xs mt-0.5">Admin Dashboard</p>
         </div>
-
-        {/* Nav */}
         <nav className="flex-1 px-3 py-4 space-y-0.5">
           {navItems.map((item) => (
             <Link
@@ -56,16 +54,10 @@ export default async function AdminLayout({
             </Link>
           ))}
         </nav>
-
-        {/* Bottom */}
         <div className="px-3 py-4 border-t border-white/10">
           <div className="px-3 py-2 mb-1">
-            <p className="text-white text-sm font-medium truncate">
-              {session.user?.name}
-            </p>
-            <p className="text-white/40 text-xs truncate">
-              {session.user?.email}
-            </p>
+            <p className="text-white text-sm font-medium truncate">{session.user?.name}</p>
+            <p className="text-white/40 text-xs truncate">{session.user?.email}</p>
           </div>
           <Link
             href="/api/auth/signout"
@@ -76,8 +68,6 @@ export default async function AdminLayout({
           </Link>
         </div>
       </aside>
-
-      {/* Main content */}
       <div className="flex-1 ml-60">
         <main className="p-8">{children}</main>
       </div>
