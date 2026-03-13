@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
+import ImageUploader from "@/components/admin/ImageUploader";
 
 interface Variant {
   sku: string;
@@ -24,6 +25,7 @@ export default function NewProductPage() {
   const [status, setStatus] = useState("DRAFT");
   const [categories, setCategories] = useState<{ id: string; name: string; parentId: string | null }[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [images, setImages] = useState<{ url: string; publicId: string; isPrimary: boolean }[]>([]);
 
   const [variants, setVariants] = useState<Variant[]>([
     { sku: "", price: "", comparePrice: "", inventory: "0", attributes: [] },
@@ -93,6 +95,12 @@ export default function NewProductPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name, slug, description, status, selectedCategories,
+          images: images.map((img, i) => ({
+            url: img.url,
+            publicId: img.publicId,
+            isPrimary: img.isPrimary,
+            position: i,
+          })),
           variants: variants.map((v) => ({
             ...v,
             price: parseFloat(v.price),
@@ -161,6 +169,12 @@ export default function NewProductPage() {
               <option value="ARCHIVED">Archived</option>
             </select>
           </div>
+        </div>
+
+        {/* Images */}
+        <div className="bg-white border border-gray-200 rounded-lg p-6">
+          <h2 className="font-semibold text-[#2D2D2D] mb-4">Product Images</h2>
+          <ImageUploader images={images} onChange={setImages} />
         </div>
 
         {/* Categories */}

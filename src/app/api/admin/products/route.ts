@@ -27,7 +27,7 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json();
-    const { name, slug, description, status, variants, selectedCategories } = body;
+    const { name, slug, description, status, variants, selectedCategories, images } = body;
 
     if (!name || !slug) {
       return NextResponse.json({ error: "Name and slug are required." }, { status: 400 });
@@ -54,12 +54,18 @@ export async function POST(req: Request) {
           })),
         },
         categories: {
-          create: (selectedCategories ?? []).map((categoryId: string) => ({
-            categoryId,
-          })),
+          create: (selectedCategories ?? []).map((categoryId: string) => ({ categoryId })),
         },
+        images: images?.length > 0 ? {
+          create: images.map((img: any) => ({
+            url:       img.url,
+            publicId:  img.publicId,
+            isPrimary: img.isPrimary,
+            position:  img.position ?? 0,
+          })),
+        } : undefined,
       },
-      include: { variants: true, categories: true },
+      include: { variants: true, categories: true, images: true },
     });
 
     return NextResponse.json(product, { status: 201 });
