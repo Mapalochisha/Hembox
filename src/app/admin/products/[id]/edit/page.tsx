@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
+import ImageUploader from "@/components/admin/ImageUploader";
 
 interface Variant {
   id?: string;
@@ -12,6 +13,12 @@ interface Variant {
   comparePrice: string;
   inventory: string;
   attributes: { key: string; value: string }[];
+}
+
+interface UploadedImage {
+  url: string;
+  publicId: string;
+  isPrimary: boolean;
 }
 
 export default function EditProductPage({ params }: { params: { id: string } }) {
@@ -27,6 +34,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
   const [variants, setVariants] = useState<Variant[]>([]);
   const [categories, setCategories] = useState<{ id: string; name: string; parentId: string | null }[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [images, setImages] = useState<UploadedImage[]>([]);
 
   useEffect(() => {
     Promise.all([
@@ -51,6 +59,13 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
         }))
       );
       setSelectedCategories(data.categories.map((c: any) => c.categoryId));
+      setImages(
+        (data.images ?? []).map((img: any) => ({
+          url: img.url,
+          publicId: img.publicId ?? "",
+          isPrimary: img.isPrimary,
+        }))
+      );
       setCategories(cats);
       setFetching(false);
     });
@@ -105,6 +120,12 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name, slug, description, status, selectedCategories,
+          images: images.map((img, i) => ({
+            url: img.url,
+            publicId: img.publicId,
+            isPrimary: img.isPrimary,
+            position: i,
+          })),
           variants: variants.map((v) => ({
             id: v.id,
             sku: v.sku,
@@ -192,6 +213,12 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
               <option value="ARCHIVED">Archived</option>
             </select>
           </div>
+        </div>
+
+        {/* Images */}
+        <div className="bg-white border border-gray-200 rounded-lg p-6">
+          <h2 className="font-semibold text-[#2D2D2D] mb-4">Product Images</h2>
+          <ImageUploader images={images} onChange={setImages} />
         </div>
 
         {/* Categories */}

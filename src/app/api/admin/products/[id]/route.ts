@@ -28,7 +28,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
   try {
     const body = await req.json();
-    const { name, slug, description, status, variants, selectedCategories } = body;
+    const { name, slug, description, status, variants, selectedCategories, images } = body;
 
     const product = await db.product.update({
       where: { id: params.id },
@@ -62,7 +62,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       }
     }
 
-    // Sync categories — delete all then recreate
+    // Sync categories
     await db.productCategory.deleteMany({ where: { productId: params.id } });
     if (selectedCategories?.length) {
       await db.productCategory.createMany({
@@ -71,6 +71,22 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
           categoryId,
         })),
       });
+    }
+
+    // Sync images — delete all then recreate
+    if (images !== undefined) {
+      await db.productImage.deleteMany({ where: { productId: params.id } });
+      if (images.length > 0) {
+        await db.productImage.createMany({
+          data: images.map((img: any) => ({
+            productId: params.id,
+            url:       img.url,
+            publicId:  img.publicId,
+            isPrimary: img.isPrimary,
+            position:  img.position ?? 0,
+          })),
+        });
+      }
     }
 
     return NextResponse.json(product);
