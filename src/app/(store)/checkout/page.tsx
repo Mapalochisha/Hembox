@@ -94,7 +94,7 @@ export default function CheckoutPage() {
 
   if (items.length === 0) {
     return (
-      <div className="px-10 py-24 text-center">
+      <div className="px-6 md:px-10 py-24 text-center">
         <p className="text-6xl mb-6">🛒</p>
         <h1 className="text-3xl font-black uppercase tracking-tight mb-3">Your cart is empty</h1>
         <Link href="/products" className="bg-[#111] text-white text-xs px-10 py-4 tracking-widest uppercase inline-block rounded">
@@ -105,7 +105,7 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="px-10 py-12 max-w-6xl mx-auto">
+    <div className="px-6 md:px-10 py-12 max-w-6xl mx-auto">
       <h1 className="text-3xl font-black uppercase tracking-tight mb-2">Checkout</h1>
 
       {/* Steps */}
@@ -124,14 +124,14 @@ export default function CheckoutPage() {
         ))}
       </div>
 
-      <div className="grid grid-cols-3 gap-12">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
         {/* Left */}
-        <div className="col-span-2">
+        <div className="md:col-span-2">
           {step === "shipping" && (
             <form onSubmit={handleShippingSubmit} className="space-y-5">
               <h2 className="font-black text-sm tracking-widest uppercase mb-6">Shipping Details</h2>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {[
                   { name: "firstName", label: "First Name" },
                   { name: "lastName", label: "Last Name" },
@@ -144,7 +144,7 @@ export default function CheckoutPage() {
                 ))}
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {[
                   { name: "email", label: "Email Address", type: "email" },
                   { name: "phone", label: "Phone Number", type: "tel" },
@@ -163,7 +163,7 @@ export default function CheckoutPage() {
                   className="w-full border border-gray-200 rounded px-4 py-3 text-sm focus:outline-none focus:border-[#111] transition-colors" />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="text-[10px] tracking-widest uppercase opacity-50 block mb-1.5">City *</label>
                   <input name="city" value={form.city} onChange={handleChange}
@@ -198,7 +198,6 @@ export default function CheckoutPage() {
             <div>
               <h2 className="font-black text-sm tracking-widest uppercase mb-6">Review Your Order</h2>
 
-              {/* Shipping summary */}
               <div className="bg-gray-50 rounded-xl p-5 mb-6">
                 <div className="flex justify-between items-start mb-3">
                   <p className="text-[10px] tracking-widest uppercase opacity-40">Shipping To</p>
@@ -210,7 +209,6 @@ export default function CheckoutPage() {
                 {form.notes && <p className="text-xs opacity-40 mt-2 italic">&ldquo;{form.notes}&rdquo;</p>}
               </div>
 
-              {/* Items */}
               <div className="space-y-3 mb-6">
                 {items.map(item => (
                   <div key={item.id} className="flex gap-4 items-center py-3 border-b border-gray-50">
@@ -229,11 +227,10 @@ export default function CheckoutPage() {
                 ))}
               </div>
 
-              {/* Payment note */}
               <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 mb-6">
                 <p className="text-xs font-bold mb-1">💳 Payment</p>
                 <p className="text-xs opacity-60 leading-relaxed">
-                  After placing your order, our team will contact you via WhatsApp or phone to arrange payment. We accept mobile money and bank transfers.
+                  After placing your order, our team will contact you via WhatsApp or phone to arrange payment.
                 </p>
               </div>
 
@@ -253,8 +250,8 @@ export default function CheckoutPage() {
         </div>
 
         {/* Order summary sidebar */}
-        <div className="col-span-1">
-          <div className="bg-gray-50 rounded-xl p-6 sticky top-20">
+        <div className="md:col-span-1">
+          <div className="bg-gray-50 rounded-xl p-6 md:sticky md:top-20">
             <h2 className="font-black text-sm tracking-widest uppercase mb-5">Summary</h2>
             <div className="space-y-2 mb-5">
               <div className="flex justify-between text-xs">

@@ -20,9 +20,9 @@ export default async function ProductPage({ params }: { params: { slug: string }
   const highestCompare = Math.max(...product.variants.map(v => Number(v.comparePrice ?? 0)));
 
   return (
-    <div className="px-10 py-10">
+    <div className="px-6 md:px-10 py-10">
       {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-xs opacity-40 tracking-widest uppercase mb-10">
+      <div className="flex items-center gap-2 text-xs opacity-40 tracking-widest uppercase mb-8">
         <Link href="/" className="hover:opacity-80">Home</Link>
         <span>/</span>
         <Link href="/products" className="hover:opacity-80">Products</Link>
@@ -30,10 +30,10 @@ export default async function ProductPage({ params }: { params: { slug: string }
         <span className="opacity-100 text-[#111]">{product.name}</span>
       </div>
 
-      <div className="grid grid-cols-2 gap-16">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-16">
         {/* Images */}
         <div>
-          <div className="bg-gray-100 rounded-xl h-[520px] flex items-center justify-center relative overflow-hidden mb-3">
+          <div className="bg-gray-100 rounded-xl h-[380px] md:h-[520px] flex items-center justify-center relative overflow-hidden mb-3">
             {product.images[0] ? (
               <img src={product.images[0].url} alt={product.name} className="w-full h-full object-cover" />
             ) : (
@@ -56,7 +56,7 @@ export default async function ProductPage({ params }: { params: { slug: string }
           <p className="text-[10px] tracking-[4px] opacity-35 uppercase mb-3">
             {product.categories[0]?.category.name ?? ""}
           </p>
-          <h1 className="text-4xl font-black tracking-tight uppercase leading-tight mb-4">
+          <h1 className="text-3xl md:text-4xl font-black tracking-tight uppercase leading-tight mb-4">
             {product.name}
           </h1>
 
@@ -71,15 +71,12 @@ export default async function ProductPage({ params }: { params: { slug: string }
             )}
           </div>
 
-          {/* Description */}
           {product.description && (
             <p className="text-sm opacity-55 leading-relaxed mb-8 max-w-md">{product.description}</p>
           )}
 
-          {/* Add to cart — client component */}
           <AddToCartButton product={product} />
 
-          {/* Tags */}
           {product.tags.length > 0 && (
             <div className="flex gap-2 mt-6 flex-wrap">
               {product.tags.map(t => (
@@ -90,7 +87,6 @@ export default async function ProductPage({ params }: { params: { slug: string }
             </div>
           )}
 
-          {/* Shipping info */}
           <div className="mt-8 pt-6 border-t border-gray-100 space-y-2">
             <p className="text-xs opacity-40">📦 Free shipping on orders over K 500</p>
             <p className="text-xs opacity-40">↩ Easy 30-day returns</p>
