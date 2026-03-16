@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import AddToCartButton from "@/components/store/AddToCartButton";
+import ProductImageGallery from "@/components/store/ProductImageGallery";
 
 export default async function ProductPage({ params }: { params: { slug: string } }) {
   const product = await db.product.findUnique({
@@ -32,24 +33,7 @@ export default async function ProductPage({ params }: { params: { slug: string }
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-16">
         {/* Images */}
-        <div>
-          <div className="bg-gray-100 rounded-xl h-[380px] md:h-[520px] flex items-center justify-center relative overflow-hidden mb-3">
-            {product.images[0] ? (
-              <img src={product.images[0].url} alt={product.name} className="w-full h-full object-cover" />
-            ) : (
-              <span className="text-[140px] opacity-20">👔</span>
-            )}
-          </div>
-          {product.images.length > 1 && (
-            <div className="grid grid-cols-4 gap-2">
-              {product.images.map((img) => (
-                <div key={img.id} className="bg-gray-100 rounded-lg h-20 overflow-hidden">
-                  <img src={img.url} alt={product.name} className="w-full h-full object-cover" />
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        <ProductImageGallery images={product.images} />
 
         {/* Info */}
         <div className="pt-2">
