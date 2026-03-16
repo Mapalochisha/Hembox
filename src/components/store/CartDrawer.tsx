@@ -12,10 +12,10 @@ export default function CartDrawer() {
   return (
     <>
       {/* Backdrop */}
-      <div className="fixed inset-0 bg-black/40 z-50 backdrop-blur-sm" onClick={closeCart} />
+      <div className="fixed inset-0 bg-black/40 z-50 backdrop-blur-sm fade-in" onClick={closeCart} />
 
       {/* Drawer */}
-      <div className="fixed right-0 top-0 h-full w-full max-w-md bg-white z-50 flex flex-col shadow-2xl">
+      <div className="fixed right-0 top-0 h-full w-full max-w-md bg-white z-50 flex flex-col shadow-2xl slide-in-right">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
           <div className="flex items-center gap-2">
@@ -27,7 +27,7 @@ export default function CartDrawer() {
               </span>
             )}
           </div>
-          <button onClick={closeCart} className="p-1 hover:opacity-60 transition-opacity">
+          <button onClick={closeCart} className="p-1 hover:opacity-60 transition-opacity btn-press">
             <X size={20} />
           </button>
         </div>
@@ -40,7 +40,7 @@ export default function CartDrawer() {
               <p className="font-semibold text-sm mb-1">Your cart is empty</p>
               <p className="text-xs opacity-40 mb-6">Add some products to get started.</p>
               <button onClick={closeCart}
-                className="bg-[#111] text-white text-xs px-6 py-3 tracking-widest uppercase rounded hover:bg-black transition-colors">
+                className="bg-[#111] text-white text-xs px-6 py-3 tracking-widest uppercase rounded hover:bg-black transition-colors btn-press">
                 Continue Shopping
               </button>
             </div>
@@ -73,16 +73,16 @@ export default function CartDrawer() {
                     {/* Quantity */}
                     <div className="flex items-center gap-2 mt-2">
                       <button onClick={() => updateQuantity(item.variantId, item.quantity - 1)}
-                        className="w-6 h-6 border border-gray-200 rounded flex items-center justify-center hover:bg-gray-50 transition-colors">
+                        className="w-6 h-6 border border-gray-200 rounded flex items-center justify-center hover:bg-gray-50 transition-colors btn-press">
                         <Minus size={10} />
                       </button>
                       <span className="text-xs font-semibold w-4 text-center">{item.quantity}</span>
                       <button onClick={() => updateQuantity(item.variantId, item.quantity + 1)}
-                        className="w-6 h-6 border border-gray-200 rounded flex items-center justify-center hover:bg-gray-50 transition-colors">
+                        className="w-6 h-6 border border-gray-200 rounded flex items-center justify-center hover:bg-gray-50 transition-colors btn-press">
                         <Plus size={10} />
                       </button>
                       <button onClick={() => removeItem(item.variantId)}
-                        className="ml-2 text-[10px] tracking-widest uppercase opacity-30 hover:opacity-70 transition-opacity">
+                        className="ml-2 text-[10px] tracking-widest uppercase opacity-30 hover:opacity-70 transition-opacity btn-press">
                         Remove
                       </button>
                     </div>
@@ -102,11 +102,11 @@ export default function CartDrawer() {
             </div>
             <p className="text-[10px] opacity-35 text-center">Shipping calculated at checkout</p>
             <Link href="/checkout" onClick={closeCart}
-              className="block w-full bg-[#111] text-white text-xs tracking-widest uppercase font-bold py-4 text-center rounded hover:bg-black transition-colors">
+              className="block w-full bg-[#111] text-white text-xs tracking-widest uppercase font-bold py-4 text-center rounded hover:bg-black transition-colors btn-press">
               Proceed to Checkout
             </Link>
             <button onClick={closeCart}
-              className="block w-full text-xs tracking-widest uppercase font-bold py-3 text-center border border-gray-200 rounded hover:bg-gray-50 transition-colors">
+              className="block w-full text-xs tracking-widest uppercase font-bold py-3 text-center border border-gray-200 rounded hover:bg-gray-50 transition-colors btn-press">
               Continue Shopping
             </button>
           </div>

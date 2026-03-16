@@ -1,5 +1,4 @@
 "use client";
-
 import { useState } from "react";
 import { useCart } from "@/components/store/CartProvider";
 
@@ -61,7 +60,7 @@ export default function AddToCartButton({ product }: { product: Product }) {
               <button key={variant.id}
                 onClick={() => setSelectedVariant(variant)}
                 disabled={variant.inventory === 0}
-                className={`w-11 h-11 border text-xs font-semibold transition-colors rounded
+                className={`w-11 h-11 border text-xs font-semibold transition-colors rounded btn-press
                   ${selectedVariant?.id === variant.id
                     ? "bg-[#111] text-white border-[#111]"
                     : variant.inventory === 0
@@ -76,7 +75,7 @@ export default function AddToCartButton({ product }: { product: Product }) {
       )}
 
       <button onClick={handleAddToCart} disabled={!selectedVariant || added}
-        className={`w-full py-4 text-xs tracking-widest uppercase font-bold transition-colors rounded
+        className={`w-full py-4 text-xs tracking-widest uppercase font-bold transition-colors rounded btn-press
           ${added
             ? "bg-green-700 text-white"
             : !selectedVariant
@@ -86,7 +85,7 @@ export default function AddToCartButton({ product }: { product: Product }) {
         {added ? "✓ Added to Cart" : !selectedVariant ? "Select a Size" : "Add to Cart"}
       </button>
 
-      <button className="w-full py-4 text-xs tracking-widest uppercase font-bold border border-[#111] hover:bg-gray-50 transition-colors rounded">
+      <button className="w-full py-4 text-xs tracking-widest uppercase font-bold border border-[#111] hover:bg-gray-50 transition-colors rounded btn-press">
         Add to Wishlist
       </button>
     </div>

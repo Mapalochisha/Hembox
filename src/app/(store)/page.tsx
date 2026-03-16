@@ -79,7 +79,7 @@ export default async function HomePage() {
         <p className="text-xs tracking-widest opacity-35 uppercase mb-6">Hot Deals</p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {featuredCategories.length > 0 ? featuredCategories.map((cat) => (
-            <Link key={cat.id} href={`/categories/${cat.slug}`} className="group cursor-pointer">
+            <Link key={cat.id} href={`/categories/${cat.slug}`} className="group cursor-pointer card-lift rounded-xl">
               <div className="bg-gray-100 h-64 flex items-center justify-center mb-4 rounded relative overflow-hidden">
                 <span className="text-8xl opacity-20">👔</span>
               </div>
@@ -90,7 +90,7 @@ export default async function HomePage() {
             </Link>
           )) : (
             [{ label: "Men", emoji: "👔", slug: "men" }, { label: "Women", emoji: "👗", slug: "women" }, { label: "Kids", emoji: "🧒", slug: "kids" }].map(cat => (
-              <Link key={cat.label} href={`/categories/${cat.slug}`} className="group cursor-pointer">
+              <Link key={cat.label} href={`/categories/${cat.slug}`} className="group cursor-pointer card-lift rounded-xl">
                 <div className="bg-gray-100 h-64 flex items-center justify-center mb-4 rounded">
                   <span className="text-8xl">{cat.emoji}</span>
                 </div>

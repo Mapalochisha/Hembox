@@ -67,7 +67,7 @@ export default async function ProductsPage({
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-8">
           {products.map(product => (
-            <Link key={product.id} href={`/products/${product.slug}`} className="group cursor-pointer">
+            <Link key={product.id} href={`/products/${product.slug}`} className="group cursor-pointer card-lift rounded-xl">
               <div className="bg-gray-100 rounded-xl h-52 md:h-80 flex items-center justify-center mb-3 md:mb-4 relative overflow-hidden">
                 {product.images[0] ? (
                   <img src={product.images[0].url} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
