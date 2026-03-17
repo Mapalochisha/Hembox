@@ -178,28 +178,49 @@ export default function NewProductPage() {
         </div>
 
         {/* Categories */}
-        <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-3">
-          <h2 className="font-semibold text-[#2D2D2D]">Categories</h2>
-          {categories.length === 0 ? (
-            <p className="text-sm text-gray-400">No categories found. Create categories first.</p>
-          ) : (
-            <div className="grid grid-cols-2 gap-2">
-              {categories.map((cat) => (
-                <label key={cat.id} className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={selectedCategories.includes(cat.id)}
-                    onChange={() => toggleCategory(cat.id)}
-                    className="w-4 h-4 rounded border-gray-300 accent-[#2D2D2D]"
-                  />
-                  <span className={`text-sm ${cat.parentId ? "text-gray-500 pl-3" : "text-gray-700 font-medium"}`}>
-                    {cat.parentId ? `└ ${cat.name}` : cat.name}
-                  </span>
-                </label>
-              ))}
-            </div>
-          )}
-        </div>
+<div className="bg-white border border-gray-200 rounded-lg p-6 space-y-3">
+  <h2 className="font-semibold text-[#2D2D2D]">Categories</h2>
+  {categories.length === 0 ? (
+    <p className="text-sm text-gray-400">No categories found. Create categories first.</p>
+  ) : (
+    <div className="space-y-3">
+      {categories
+        .filter(cat => !cat.parentId)
+        .map(parent => (
+          <div key={parent.id} className="border border-gray-100 rounded-lg p-3">
+            {/* Parent category */}
+            <label className="flex items-center gap-2 cursor-pointer mb-2">
+              <input
+                type="checkbox"
+                checked={selectedCategories.includes(parent.id)}
+                onChange={() => toggleCategory(parent.id)}
+                className="w-4 h-4 rounded border-gray-300 accent-[#2D2D2D]"
+              />
+              <span className="text-sm font-semibold text-gray-800">{parent.name}</span>
+            </label>
+            {/* Subcategories */}
+            {categories.filter(cat => cat.parentId === parent.id).length > 0 && (
+              <div className="pl-6 space-y-1.5 border-l border-gray-100 ml-2">
+                {categories
+                  .filter(cat => cat.parentId === parent.id)
+                  .map(child => (
+                    <label key={child.id} className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={selectedCategories.includes(child.id)}
+                        onChange={() => toggleCategory(child.id)}
+                        className="w-4 h-4 rounded border-gray-300 accent-[#2D2D2D]"
+                      />
+                      <span className="text-sm text-gray-600">{child.name}</span>
+                    </label>
+                  ))}
+              </div>
+            )}
+          </div>
+        ))}
+    </div>
+  )}
+</div>
 
         {/* Variants */}
         <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-4">
