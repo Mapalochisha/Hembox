@@ -35,7 +35,12 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       data: { name, slug, description, status },
     });
 
-    // Handle variants — update existing, create new
+    // Sync variants — delete removed ones, update existing, create new
+    const incomingIds = variants.filter((v: any) => v.id).map((v: any) => v.id);
+    await db.productVariant.deleteMany({
+      where: { productId: params.id, id: { notIn: incomingIds } },
+    });
+
     for (const v of variants) {
       if (v.id) {
         await db.productVariant.update({
@@ -73,7 +78,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       });
     }
 
-    // Sync images — delete all then recreate
+    // Sync images
     if (images !== undefined) {
       await db.productImage.deleteMany({ where: { productId: params.id } });
       if (images.length > 0) {
@@ -103,6 +108,33 @@ export async function DELETE(_req: Request, { params }: { params: { id: string }
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  await db.product.delete({ where: { id: params.id } });
-  return NextResponse.json({ success: true });
+  try {
+    // Get all variant ids first
+    const variants = await db.productVariant.findMany({
+      where: { productId: params.id },
+      select: { id: true },
+    });
+    const variantIds = variants.map(v => v.id);
+
+    // Delete variant-related records
+  if (variantIds.length > 0) {
+    await db.cartItem.deleteMany({ where: { variantId: { in: variantIds } } });
+    await db.stockAlert.deleteMany({ where: { variantId: { in: variantIds } } });
+    await db.orderItem.deleteMany({ where: { variantId: { in: variantIds } } });
+  }
+
+    // Delete product-related records
+    await db.productImage.deleteMany({ where: { productId: params.id } });
+    await db.productVariant.deleteMany({ where: { productId: params.id } });
+    await db.productCategory.deleteMany({ where: { productId: params.id } });
+    await db.productTag.deleteMany({ where: { productId: params.id } });
+    await db.wishlistItem.deleteMany({ where: { productId: params.id } });
+    await db.review.deleteMany({ where: { productId: params.id } });
+    await db.product.delete({ where: { id: params.id } });
+
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    console.error(error);
+    return NextResponse.json({ error: "Failed to delete product." }, { status: 500 });
+  }
 }
