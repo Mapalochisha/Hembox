@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
+import { sendOrderConfirmationEmail, sendAdminOrderNotification } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +21,7 @@ export async function POST(req: Request) {
 
     const orderNumber = generateOrderNumber();
 
-    // Find or create customer by email
+    // Find or create customer
     let customer = await db.customer.findUnique({
       where: { email: shipping.email },
     });
@@ -28,14 +29,14 @@ export async function POST(req: Request) {
     if (!customer) {
       customer = await db.customer.create({
         data: {
-            email: shipping.email,
-            name: shipping.name,
-            phone: shipping.phone,
+          email: shipping.email,
+          name: shipping.name,
+          phone: shipping.phone,
         },
       });
     }
 
-    // Create the order
+    // Create order
     const order = await db.order.create({
       data: {
         orderNumber,
@@ -70,6 +71,36 @@ export async function POST(req: Request) {
         },
       },
     });
+
+    // Send emails
+    const emailData = {
+      orderNumber: order.orderNumber,
+      customerName: shipping.name,
+      customerEmail: shipping.email,
+      customerPhone: shipping.phone,
+      items: items.map((item: any) => ({
+        name: item.name,
+        sku: item.sku,
+        quantity: item.quantity,
+        price: item.price,
+        attributes: item.attributes ?? {},
+      })),
+      subtotal,
+      shippingCost,
+      total,
+      shippingAddress: {
+        address: shipping.address,
+        city: shipping.city,
+        province: shipping.province,
+      },
+      notes: shipping.notes,
+    };
+
+    // Send both emails — don't block order creation if email fails
+    await Promise.allSettled([
+      sendOrderConfirmationEmail(emailData),
+      sendAdminOrderNotification(emailData),
+    ]);
 
     return NextResponse.json({ orderNumber: order.orderNumber, orderId: order.id });
   } catch (err: any) {
