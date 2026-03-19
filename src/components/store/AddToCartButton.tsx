@@ -126,7 +126,9 @@ export default function AddToCartButton({ product, onImageChange }: Props) {
       comparePrice: selectedVariant.comparePrice ? Number(selectedVariant.comparePrice) : null,
       sku: selectedVariant.sku,
       attributes: Object.fromEntries(
-        Object.entries(selectedVariant.attributes ?? {}).filter(([k]) => !k.startsWith("_"))
+        Object.entries(selectedVariant.attributes ?? {})
+        .filter(([k]) => !k.startsWith("_"))
+        .map(([k, v]) => [k, String(v)])
       ),
     });
     setAdded(true);
