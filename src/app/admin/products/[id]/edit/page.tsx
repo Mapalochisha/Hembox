@@ -3,23 +3,10 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Trash2 } from "lucide-react";
 import ImageUploader from "@/components/admin/ImageUploader";
-
-interface Variant {
-  id?: string;
-  sku: string;
-  price: string;
-  comparePrice: string;
-  inventory: string;
-  attributes: { key: string; value: string }[];
-}
-
-interface UploadedImage {
-  url: string;
-  publicId: string;
-  isPrimary: boolean;
-}
+import VariantBuilder, { VariantGroup } from "@/components/admin/VariantBuilder";
+import { flattenVariantGroups, groupVariantsForBuilder } from "@/lib/variants";
 
 export default function EditProductPage({ params }: { params: { id: string } }) {
   const router = useRouter();
@@ -31,89 +18,45 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
   const [slug, setSlug] = useState("");
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState("DRAFT");
-  const [variants, setVariants] = useState<Variant[]>([]);
   const [categories, setCategories] = useState<{ id: string; name: string; parentId: string | null }[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [images, setImages] = useState<UploadedImage[]>([]);
+  const [images, setImages] = useState<{ url: string; publicId: string; isPrimary: boolean }[]>([]);
+  const [variantGroups, setVariantGroups] = useState<VariantGroup[]>([]);
 
   useEffect(() => {
     Promise.all([
-      fetch(`/api/admin/products/${params.id}`).then((r) => r.json()),
-      fetch("/api/admin/categories").then((r) => r.json()),
+      fetch(`/api/admin/products/${params.id}`).then(r => r.json()),
+      fetch("/api/admin/categories").then(r => r.json()),
     ]).then(([data, cats]) => {
       setName(data.name);
       setSlug(data.slug);
       setDescription(data.description ?? "");
       setStatus(data.status);
-      setVariants(
-        data.variants.map((v: any) => ({
-          id: v.id,
-          sku: v.sku,
-          price: v.price.toString(),
-          comparePrice: v.comparePrice?.toString() ?? "",
-          inventory: v.inventory.toString(),
-          attributes: Object.entries(v.attributes ?? {}).map(([key, value]) => ({
-            key,
-            value: value as string,
-          })),
-        }))
-      );
       setSelectedCategories(data.categories.map((c: any) => c.categoryId));
-      setImages(
-        (data.images ?? []).map((img: any) => ({
-          url: img.url,
-          publicId: img.publicId ?? "",
-          isPrimary: img.isPrimary,
-        }))
-      );
+      setImages((data.images ?? []).map((img: any) => ({
+        url: img.url,
+        publicId: img.publicId ?? "",
+        isPrimary: img.isPrimary,
+      })));
+      setVariantGroups(groupVariantsForBuilder(data.variants ?? []));
       setCategories(cats);
       setFetching(false);
     });
   }, [params.id]);
 
   function toggleCategory(id: string) {
-    setSelectedCategories((prev) =>
-      prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]
+    setSelectedCategories(prev =>
+      prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]
     );
-  }
-
-  function addVariant() {
-    setVariants([...variants, { sku: "", price: "", comparePrice: "", inventory: "0", attributes: [] }]);
-  }
-
-  function removeVariant(index: number) {
-    setVariants(variants.filter((_, i) => i !== index));
-  }
-
-  function updateVariant(index: number, field: keyof Variant, value: string) {
-    const updated = [...variants];
-    (updated[index] as any)[field] = value;
-    setVariants(updated);
-  }
-
-  function addAttribute(vi: number) {
-    const updated = [...variants];
-    updated[vi].attributes.push({ key: "", value: "" });
-    setVariants(updated);
-  }
-
-  function updateAttribute(vi: number, ai: number, field: "key" | "value", value: string) {
-    const updated = [...variants];
-    updated[vi].attributes[ai][field] = value;
-    setVariants(updated);
-  }
-
-  function removeAttribute(vi: number, ai: number) {
-    const updated = [...variants];
-    updated[vi].attributes = updated[vi].attributes.filter((_, i) => i !== ai);
-    setVariants(updated);
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
-    setLoading(true);
 
+    const variants = flattenVariantGroups(variantGroups, slug);
+
+    setLoading(true);
     try {
       const res = await fetch(`/api/admin/products/${params.id}`, {
         method: "PATCH",
@@ -126,14 +69,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
             isPrimary: img.isPrimary,
             position: i,
           })),
-          variants: variants.map((v) => ({
-            id: v.id,
-            sku: v.sku,
-            price: parseFloat(v.price),
-            comparePrice: v.comparePrice ? parseFloat(v.comparePrice) : null,
-            inventory: parseInt(v.inventory),
-            attributes: Object.fromEntries(v.attributes.map((a) => [a.key, a.value])),
-          })),
+          variants,
         }),
       });
 
@@ -191,22 +127,22 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
           <h2 className="font-semibold text-[#2D2D2D]">Basic Information</h2>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Product Name</label>
-            <input type="text" value={name} onChange={(e) => setName(e.target.value)} required
+            <input type="text" value={name} onChange={e => setName(e.target.value)} required
               className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-[#2D2D2D]" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Slug</label>
-            <input type="text" value={slug} onChange={(e) => setSlug(e.target.value)} required
+            <input type="text" value={slug} onChange={e => setSlug(e.target.value)} required
               className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-[#2D2D2D]" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Description</label>
-            <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={4}
+            <textarea value={description} onChange={e => setDescription(e.target.value)} rows={4}
               className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-[#2D2D2D] resize-none" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Status</label>
-            <select value={status} onChange={(e) => setStatus(e.target.value)}
+            <select value={status} onChange={e => setStatus(e.target.value)}
               className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-[#2D2D2D] bg-white">
               <option value="DRAFT">Draft</option>
               <option value="ACTIVE">Active</option>
@@ -222,113 +158,47 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
         </div>
 
         {/* Categories */}
-<div className="bg-white border border-gray-200 rounded-lg p-6 space-y-3">
-  <h2 className="font-semibold text-[#2D2D2D]">Categories</h2>
-  {categories.length === 0 ? (
-    <p className="text-sm text-gray-400">No categories found. Create categories first.</p>
-  ) : (
-    <div className="space-y-3">
-      {categories
-        .filter(cat => !cat.parentId)
-        .map(parent => (
-          <div key={parent.id} className="border border-gray-100 rounded-lg p-3">
-            {/* Parent category */}
-            <label className="flex items-center gap-2 cursor-pointer mb-2">
-              <input
-                type="checkbox"
-                checked={selectedCategories.includes(parent.id)}
-                onChange={() => toggleCategory(parent.id)}
-                className="w-4 h-4 rounded border-gray-300 accent-[#2D2D2D]"
-              />
-              <span className="text-sm font-semibold text-gray-800">{parent.name}</span>
-            </label>
-            {/* Subcategories */}
-            {categories.filter(cat => cat.parentId === parent.id).length > 0 && (
-              <div className="pl-6 space-y-1.5 border-l border-gray-100 ml-2">
-                {categories
-                  .filter(cat => cat.parentId === parent.id)
-                  .map(child => (
-                    <label key={child.id} className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={selectedCategories.includes(child.id)}
-                        onChange={() => toggleCategory(child.id)}
-                        className="w-4 h-4 rounded border-gray-300 accent-[#2D2D2D]"
-                      />
-                      <span className="text-sm text-gray-600">{child.name}</span>
-                    </label>
-                  ))}
-              </div>
-            )}
-          </div>
-        ))}
-    </div>
-  )}
-</div>
+        <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-3">
+          <h2 className="font-semibold text-[#2D2D2D]">Categories</h2>
+          {categories.length === 0 ? (
+            <p className="text-sm text-gray-400">No categories found.</p>
+          ) : (
+            <div className="space-y-3">
+              {categories.filter(cat => !cat.parentId).map(parent => (
+                <div key={parent.id} className="border border-gray-100 rounded-lg p-3">
+                  <label className="flex items-center gap-2 cursor-pointer mb-2">
+                    <input type="checkbox" checked={selectedCategories.includes(parent.id)}
+                      onChange={() => toggleCategory(parent.id)}
+                      className="w-4 h-4 rounded border-gray-300 accent-[#2D2D2D]" />
+                    <span className="text-sm font-semibold text-gray-800">{parent.name}</span>
+                  </label>
+                  {categories.filter(cat => cat.parentId === parent.id).length > 0 && (
+                    <div className="pl-6 space-y-1.5 border-l border-gray-100 ml-2">
+                      {categories.filter(cat => cat.parentId === parent.id).map(child => (
+                        <label key={child.id} className="flex items-center gap-2 cursor-pointer">
+                          <input type="checkbox" checked={selectedCategories.includes(child.id)}
+                            onChange={() => toggleCategory(child.id)}
+                            className="w-4 h-4 rounded border-gray-300 accent-[#2D2D2D]" />
+                          <span className="text-sm text-gray-600">{child.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* Variants */}
-        <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="font-semibold text-[#2D2D2D]">Variants & Pricing</h2>
-            <button type="button" onClick={addVariant}
-              className="flex items-center gap-1.5 text-xs font-medium text-gray-600 border border-gray-200 px-3 py-1.5 rounded-md hover:bg-gray-50">
-              <Plus size={12} /> Add Variant
-            </button>
-          </div>
-          {variants.map((variant, vi) => (
-            <div key={vi} className="border border-gray-200 rounded-md p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-medium text-gray-700">Variant {vi + 1}</p>
-                {variants.length > 1 && (
-                  <button type="button" onClick={() => removeVariant(vi)} className="text-red-400 hover:text-red-600">
-                    <Trash2 size={14} />
-                  </button>
-                )}
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">SKU</label>
-                  <input type="text" value={variant.sku} onChange={(e) => updateVariant(vi, "sku", e.target.value)} required
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-[#2D2D2D]" />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Inventory</label>
-                  <input type="number" value={variant.inventory} onChange={(e) => updateVariant(vi, "inventory", e.target.value)} min="0"
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-[#2D2D2D]" />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Price (K)</label>
-                  <input type="number" value={variant.price} onChange={(e) => updateVariant(vi, "price", e.target.value)} required min="0" step="0.01"
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-[#2D2D2D]" />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Compare Price (K)</label>
-                  <input type="number" value={variant.comparePrice} onChange={(e) => updateVariant(vi, "comparePrice", e.target.value)} min="0" step="0.01"
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-[#2D2D2D]" />
-                </div>
-              </div>
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-xs font-medium text-gray-600">Attributes</label>
-                  <button type="button" onClick={() => addAttribute(vi)}
-                    className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1">
-                    <Plus size={10} /> Add
-                  </button>
-                </div>
-                {variant.attributes.map((attr, ai) => (
-                  <div key={ai} className="flex gap-2 mb-2">
-                    <input type="text" value={attr.key} onChange={(e) => updateAttribute(vi, ai, "key", e.target.value)} placeholder="Size"
-                      className="flex-1 px-3 py-1.5 text-xs border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-[#2D2D2D]" />
-                    <input type="text" value={attr.value} onChange={(e) => updateAttribute(vi, ai, "value", e.target.value)} placeholder="M"
-                      className="flex-1 px-3 py-1.5 text-xs border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-[#2D2D2D]" />
-                    <button type="button" onClick={() => removeAttribute(vi, ai)} className="text-red-400 hover:text-red-600">
-                      <Trash2 size={12} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
+        <div className="bg-white border border-gray-200 rounded-lg p-6">
+          <h2 className="font-semibold text-[#2D2D2D] mb-4">Product Variants</h2>
+          <VariantBuilder
+            groups={variantGroups}
+            onChange={setVariantGroups}
+            productSlug={slug}
+            images={images}
+          />
         </div>
 
         {error && (

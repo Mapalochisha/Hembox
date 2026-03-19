@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface ProductImage {
   id: string;
@@ -8,9 +8,21 @@ interface ProductImage {
   isPrimary: boolean;
 }
 
-export default function ProductImageGallery({ images }: { images: ProductImage[] }) {
+interface Props {
+  images: ProductImage[];
+  externalIndex?: number | null;
+}
+
+export default function ProductImageGallery({ images, externalIndex }: Props) {
   const primary = images.find(i => i.isPrimary) ?? images[0];
   const [selected, setSelected] = useState<ProductImage | null>(primary ?? null);
+
+  // When externalIndex changes (from variant selection), update the displayed image
+  useEffect(() => {
+    if (externalIndex !== null && externalIndex !== undefined && images[externalIndex]) {
+      setSelected(images[externalIndex]);
+    }
+  }, [externalIndex, images]);
 
   if (!images.length) {
     return (
@@ -39,7 +51,7 @@ export default function ProductImageGallery({ images }: { images: ProductImage[]
       {/* Thumbnails */}
       {images.length > 1 && (
         <div className="grid grid-cols-4 gap-2">
-          {images.map(img => (
+          {images.map((img, i) => (
             <button
               key={img.id}
               onClick={() => setSelected(img)}

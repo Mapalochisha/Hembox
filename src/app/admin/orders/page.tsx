@@ -45,7 +45,11 @@ export default function OrdersPage() {
       .then(data => { setOrders(data); setLoading(false); });
   }, []);
 
-  const filtered = filter === "ALL" ? orders : orders.filter(o => o.status === filter);
+  const filtered = filter === "ALL" 
+  ? orders.filter(o => o.status !== "ARCHIVED")
+  : filter === "ARCHIVED"
+  ? orders.filter(o => o.status === "ARCHIVED")
+  : orders.filter(o => o.status === filter);
 
   return (
     <div>
@@ -58,7 +62,7 @@ export default function OrdersPage() {
 
       {/* Filters */}
       <div className="flex gap-2 mb-6 flex-wrap">
-        {["ALL", "PENDING", "CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"].map(s => (
+        {["ALL", "PENDING", "CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED", "ARCHIVED"].map(s => (
           <button key={s} onClick={() => setFilter(s)}
             className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors
               ${filter === s ? "bg-[#2D2D2D] text-white border-[#2D2D2D]" : "border-gray-200 hover:bg-gray-50"}`}>

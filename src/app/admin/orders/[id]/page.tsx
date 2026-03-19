@@ -31,7 +31,7 @@ interface Order {
   }[];
 }
 
-const ORDER_STATUSES = ["PENDING", "CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED", "REFUNDED"];
+const ORDER_STATUSES = ["PENDING", "CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED", "REFUNDED", "ARCHIVED"];
 const PAYMENT_STATUSES = ["PENDING", "PAID", "FAILED", "REFUNDED"];
 
 export default function OrderDetailPage({ params }: { params: { id: string } }) {
@@ -149,11 +149,32 @@ export default function OrderDetailPage({ params }: { params: { id: string } }) 
                 placeholder="e.g. ZM1234567890"
                 className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-gray-400" />
             </div>
-            <button onClick={handleSave} disabled={saving}
-              className={`px-6 py-2.5 text-sm font-semibold rounded-lg text-white transition-colors
-                ${saving ? "bg-gray-400 cursor-not-allowed" : "bg-[#2D2D2D] hover:bg-black"}`}>
-              {saving ? "Saving..." : "Save Changes"}
-            </button>
+                        <div className="flex gap-3 flex-wrap">
+              <button onClick={handleSave} disabled={saving}
+                className={`px-6 py-2.5 text-sm font-semibold rounded-lg text-white transition-colors
+                  ${saving ? "bg-gray-400 cursor-not-allowed" : "bg-[#2D2D2D] hover:bg-black"}`}>
+                {saving ? "Saving..." : "Save Changes"}
+              </button>
+              {status !== "ARCHIVED" && (
+                <button
+                  onClick={async () => {
+                    if (!confirm("Archive this order? It will be hidden from the main orders view.")) return;
+                    setStatus("ARCHIVED");
+                    setSaving(true);
+                    await fetch(`/api/admin/orders/${params.id}`, {
+                      method: "PATCH",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ status: "ARCHIVED" }),
+                    });
+                    setSaving(false);
+                    router.push("/admin/orders");
+                  }}
+                  disabled={saving}
+                  className="px-6 py-2.5 text-sm font-semibold rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors disabled:opacity-30">
+                  Archive Order
+                </button>
+              )}
+            </div>
           </div>
         </div>
 

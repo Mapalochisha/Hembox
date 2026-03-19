@@ -19,34 +19,35 @@ interface Product {
   images: { url: string; isPrimary: boolean }[];
 }
 
+interface Props {
+  product: Product;
+  onImageChange?: (index: number | null) => void;
+}
+
 function normalizeValue(value: string): string {
   if (!value) return "";
   return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
 }
 
-function sortAttributeKeys(keys: string[]): string[] {
-  const preferred = ["Color", "Size"];
-  const result: string[] = [];
-
-  for (const p of preferred) {
-    const match = keys.find(k => k.toLowerCase() === p.toLowerCase());
-    if (match) result.push(match);
-  }
-
-  for (const k of keys.sort()) {
-    const alreadyAdded = result.some(r => r.toLowerCase() === k.toLowerCase());
-    if (!alreadyAdded) result.push(k);
-  }
-
-  return result;
-}
-
-export default function AddToCartButton({ product }: { product: Product }) {
+export default function AddToCartButton({ product, onImageChange }: Props) {
   const { addItem } = useCart();
+
+  // Collect attribute keys — master key first, exclude internal _ keys
+  const attributeKeys: string[] = [];
+  const masterKey = product.variants[0]?.attributes?._masterKey;
+  if (masterKey) attributeKeys.push(masterKey);
+  product.variants.forEach(v => {
+    Object.keys(v.attributes ?? {}).forEach(key => {
+      if (!key.startsWith("_") && !attributeKeys.includes(key)) attributeKeys.push(key);
+    });
+  });
+
   const [selectedAttrs, setSelectedAttrs] = useState<Record<string, string>>(
     product.variants.length === 1
       ? Object.fromEntries(
-          Object.entries(product.variants[0].attributes ?? {}).map(([k, v]) => [k, normalizeValue(v as string)])
+          Object.entries(product.variants[0].attributes ?? {})
+            .filter(([k]) => !k.startsWith("_"))
+            .map(([k, v]) => [k, normalizeValue(v as string)])
         )
       : {}
   );
@@ -57,16 +58,6 @@ export default function AddToCartButton({ product }: { product: Product }) {
 
   const primaryImage = product.images.find(i => i.isPrimary)?.url ?? product.images[0]?.url ?? null;
 
-  // Collect all unique attribute keys in preferred order
-  const rawKeys: string[] = [];
-  product.variants.forEach(v => {
-    Object.keys(v.attributes ?? {}).forEach(key => {
-      if (!rawKeys.includes(key)) rawKeys.push(key);
-    });
-  });
-  const attributeKeys = sortAttributeKeys(rawKeys);
-
-  // For each key get unique normalized values
   const attributeOptions = attributeKeys.map(key => ({
     key,
     values: Array.from(new Set(
@@ -83,6 +74,7 @@ export default function AddToCartButton({ product }: { product: Product }) {
       delete newAttrs[key];
       setSelectedAttrs(newAttrs);
       setSelectedVariant(null);
+      onImageChange?.(null);
       return;
     }
 
@@ -95,6 +87,16 @@ export default function AddToCartButton({ product }: { product: Product }) {
       )
     );
     setSelectedVariant(match ?? null);
+
+    // Update image if master attribute selected and has linked image
+    if (key === masterKey && match) {
+      const linkedIndex = match.attributes?._linkedImageIndex;
+      if (linkedIndex !== undefined && linkedIndex !== "") {
+        onImageChange?.(parseInt(linkedIndex));
+      } else {
+        onImageChange?.(null);
+      }
+    }
   }
 
   function isSelected(key: string, value: string) {
@@ -123,7 +125,9 @@ export default function AddToCartButton({ product }: { product: Product }) {
       price: Number(selectedVariant.price),
       comparePrice: selectedVariant.comparePrice ? Number(selectedVariant.comparePrice) : null,
       sku: selectedVariant.sku,
-      attributes: selectedVariant.attributes ?? {},
+      attributes: Object.fromEntries(
+        Object.entries(selectedVariant.attributes ?? {}).filter(([k]) => !k.startsWith("_"))
+      ),
     });
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);

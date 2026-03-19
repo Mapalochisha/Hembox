@@ -227,6 +227,7 @@ enum OrderStatus {
   DELIVERED
   CANCELLED
   REFUNDED
+  ARCHIVED
 }
 
 enum PaymentStatus {
