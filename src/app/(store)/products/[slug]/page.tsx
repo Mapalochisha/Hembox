@@ -30,54 +30,22 @@ export default async function ProductPage({ params }: { params: { slug: string }
         <span className="opacity-100 text-[#111]">{product.name}</span>
       </div>
 
-      <ProductDetail
-        images={product.images}
-        product={{
-          id: product.id,
-          name: product.name,
-          slug: product.slug,
-          variants: product.variants,
-          images: product.images,
-        }}
-      />
-
-      {/* Info below grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-16 mt-0">
-        <div /> {/* spacer for image column */}
-        <div className="pt-2">
-          <p className="text-[10px] tracking-[4px] opacity-35 uppercase mb-3">
-            {product.categories[0]?.category.name ?? ""}
-          </p>
-          <h1 className="text-3xl md:text-4xl font-black tracking-tight uppercase leading-tight mb-4">
-            {product.name}
-          </h1>
-          <div className="flex items-center gap-3 mb-6">
-            <p className="text-2xl font-bold">K {lowestPrice.toFixed(2)}</p>
-            {highestCompare > 0 && (
-              <p className="text-base opacity-35 line-through">K {highestCompare.toFixed(2)}</p>
-            )}
-            {highestCompare > 0 && (
-              <span className="bg-[#111] text-white text-[9px] px-2 py-1 tracking-widest rounded font-bold">SALE</span>
-            )}
-          </div>
-          {product.description && (
-            <p className="text-sm opacity-55 leading-relaxed mb-8 max-w-md">{product.description}</p>
-          )}
-          {product.tags.length > 0 && (
-            <div className="flex gap-2 mt-6 flex-wrap">
-              {product.tags.map(t => (
-                <span key={t.tag.id} className="text-[10px] tracking-widest uppercase border border-gray-200 px-3 py-1 rounded-full opacity-50">
-                  {t.tag.name}
-                </span>
-              ))}
-            </div>
-          )}
-          <div className="mt-8 pt-6 border-t border-gray-100 space-y-2">
-            <p className="text-xs opacity-40">📦 Free shipping on orders over K 500</p>
-            <p className="text-xs opacity-40">↩ Easy 30-day returns</p>
-            <p className="text-xs opacity-40">✓ Authentic HemBox quality</p>
-          </div>
-        </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-16">
+        <ProductDetail
+          images={product.images}
+          product={{
+            id: product.id,
+            name: product.name,
+            slug: product.slug,
+            variants: product.variants,
+            images: product.images,
+          }}
+          category={product.categories[0]?.category.name ?? ""}
+          lowestPrice={lowestPrice}
+          highestCompare={highestCompare}
+          description={product.description ?? ""}
+          tags={product.tags.map(t => t.tag.name)}
+        />
       </div>
     </div>
   );
