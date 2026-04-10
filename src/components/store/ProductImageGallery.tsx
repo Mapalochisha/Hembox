@@ -13,26 +13,39 @@ interface Props {
   externalIndex?: number | null;
 }
 
-type SlideDirection = "left" | "right" | "up";
+type ScrollDirection = "left" | "right";
 
 export default function ProductImageGallery({ images, externalIndex }: Props) {
-  const primary = images.find(i => i.isPrimary) ?? images[0];
+  const primary = images.find((i) => i.isPrimary) ?? images[0];
   const [selected, setSelected] = useState<ProductImage | null>(primary ?? null);
   const [prevImage, setPrevImage] = useState<ProductImage | null>(null);
-  const [direction, setDirection] = useState<SlideDirection>("right");
+  const [direction, setDirection] = useState<ScrollDirection>("right");
   const [animating, setAnimating] = useState(false);
-  const currentIndexRef = useRef(images.findIndex(i => i.id === primary?.id));
+  // Track whether the incoming image has been "activated" (triggers the CSS transition)
+  const [entered, setEntered] = useState(false);
+  const currentIndexRef = useRef(images.findIndex((i) => i.id === primary?.id));
 
-  function switchImage(img: ProductImage, dir: SlideDirection) {
+  function switchImage(img: ProductImage, dir: ScrollDirection) {
     if (img.id === selected?.id || animating) return;
     setPrevImage(selected);
     setDirection(dir);
     setAnimating(true);
+    setEntered(false); // start off-screen
     setSelected(img);
+
+    // Use a small rAF delay so the browser paints the off-screen position first,
+    // then we trigger the transition to translateX(0)
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setEntered(true);
+      });
+    });
+
     setTimeout(() => {
       setPrevImage(null);
       setAnimating(false);
-    }, 320);
+      setEntered(false);
+    }, 400);
   }
 
   function handleThumbnailClick(img: ProductImage, i: number) {
@@ -42,19 +55,18 @@ export default function ProductImageGallery({ images, externalIndex }: Props) {
   }
 
   useEffect(() => {
-    if (externalIndex !== null && externalIndex !== undefined && images[externalIndex]) {
+    if (
+      externalIndex !== null &&
+      externalIndex !== undefined &&
+      images[externalIndex]
+    ) {
       const img = images[externalIndex];
-      const dir: SlideDirection = externalIndex > currentIndexRef.current ? "right" : "left";
+      const dir: ScrollDirection =
+        externalIndex > currentIndexRef.current ? "right" : "left";
       currentIndexRef.current = externalIndex;
       switchImage(img, dir);
     }
   }, [externalIndex]);
-
-  const enterFrom: Record<SlideDirection, string> = {
-    right: "translate-x-full",
-    left: "-translate-x-full",
-    up: "translate-y-full",
-  };
 
   if (!images.length) {
     return (
@@ -63,6 +75,25 @@ export default function ProductImageGallery({ images, externalIndex }: Props) {
       </div>
     );
   }
+
+  // --- Transform calculations ---
+  // Scrolling RIGHT: new enters from +100% (right side), old exits to -100% (left side)
+  // Scrolling LEFT:  new enters from -100% (left side),  old exits to +100% (right side)
+
+  const outgoingTransform = animating
+    ? direction === "right"
+      ? "translateX(-100%)" // exits left
+      : "translateX(100%)"  // exits right
+    : "translateX(0)";
+
+  const incomingTransform =
+    prevImage && animating
+      ? entered
+        ? "translateX(0)"   // final position: centered
+        : direction === "right"
+          ? "translateX(100%)"  // starts off-screen right
+          : "translateX(-100%)" // starts off-screen left
+      : "translateX(0)";
 
   return (
     <div>
@@ -73,8 +104,11 @@ export default function ProductImageGallery({ images, externalIndex }: Props) {
           <img
             src={prevImage.url}
             alt="Product"
-            className={`absolute inset-0 w-full h-full object-cover transition-transform duration-300 ease-in-out
-              ${direction === "right" ? "-translate-x-full" : direction === "left" ? "translate-x-full" : "-translate-y-full"}`}
+            className="absolute inset-0 w-full h-full object-cover transition-transform duration-[400ms] ease-in-out"
+            style={{
+              transform: outgoingTransform,
+              zIndex: 1,
+            }}
           />
         )}
 
@@ -83,10 +117,14 @@ export default function ProductImageGallery({ images, externalIndex }: Props) {
           <img
             src={selected.url}
             alt="Product"
-            className={`absolute inset-0 w-full h-full object-cover transition-transform duration-300 ease-in-out
-              ${animating ? enterFrom[direction] : "translate-x-0 translate-y-0"}`}
+            className={`absolute inset-0 w-full h-full object-cover ease-in-out ${
+              prevImage && animating
+                ? "transition-transform duration-[400ms]"
+                : ""
+            }`}
             style={{
-              transform: animating ? undefined : "translate(0,0)",
+              transform: incomingTransform,
+              zIndex: 2,
             }}
           />
         )}
@@ -100,8 +138,17 @@ export default function ProductImageGallery({ images, externalIndex }: Props) {
               key={img.id}
               onClick={() => handleThumbnailClick(img, i)}
               className={`bg-gray-100 rounded-lg h-20 overflow-hidden border-2 transition-all duration-200 btn-press
-                ${selected?.id === img.id ? "border-[#111]" : "border-transparent hover:border-gray-300"}`}>
-              <img src={img.url} alt="Product thumbnail" className="w-full h-full object-cover" />
+                ${
+                  selected?.id === img.id
+                    ? "border-[#111]"
+                    : "border-transparent hover:border-gray-300"
+                }`}
+            >
+              <img
+                src={img.url}
+                alt="Product thumbnail"
+                className="w-full h-full object-cover"
+              />
             </button>
           ))}
         </div>
