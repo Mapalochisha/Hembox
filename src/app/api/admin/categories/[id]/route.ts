@@ -18,10 +18,10 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
-    const { name, slug, description, parentId, featured } = await req.json();
+    const { name, slug, description, parentId, featured, imageUrl } = await req.json();
     const category = await db.category.update({
       where: { id: params.id },
-      data: { name, slug, description, parentId: parentId || null, featured },
+      data: { name, slug, description, parentId: parentId || null, featured, imageUrl: imageUrl || null },
     });
     return NextResponse.json(category);
   } catch (error) {

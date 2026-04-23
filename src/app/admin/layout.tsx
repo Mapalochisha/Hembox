@@ -10,6 +10,7 @@ import {
   Settings,
   LogOut,
   Store,
+  Palette,
 } from "lucide-react";
 
 const navItems = [
@@ -18,6 +19,7 @@ const navItems = [
   { href: "/admin/categories", label: "Categories", icon: FolderOpen },
   { href: "/admin/orders",     label: "Orders",     icon: ShoppingCart },
   { href: "/admin/customers",  label: "Customers",  icon: Users },
+  { href: "/admin/theme",      label: "Theme",      icon: Palette },
   { href: "/admin/settings",   label: "Settings",   icon: Settings },
 ];
 

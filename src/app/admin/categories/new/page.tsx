@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import SingleImageUploader from "@/components/admin/SingleImageUploader";
 
 export default function NewCategoryPage() {
   const router = useRouter();
@@ -16,6 +17,7 @@ export default function NewCategoryPage() {
   const [description, setDescription] = useState("");
   const [parentId, setParentId] = useState("");
   const [featured, setFeatured] = useState(false);
+  const [imageUrl, setImageUrl] = useState("");
 
   useEffect(() => {
     fetch("/api/admin/categories")
@@ -36,7 +38,7 @@ export default function NewCategoryPage() {
       const res = await fetch("/api/admin/categories", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, slug, description, parentId: parentId || null, featured }),
+        body: JSON.stringify({ name, slug, description, parentId: parentId || null, featured, imageUrl }),
       });
       if (!res.ok) {
         const data = await res.json();
@@ -81,6 +83,13 @@ export default function NewCategoryPage() {
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Description</label>
             <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3}
               className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-[#2D2D2D] resize-none" />
+          </div>
+          <div>
+            <SingleImageUploader
+              label="Collection Banner Image"
+              value={imageUrl}
+              onChange={setImageUrl}
+            />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Parent Category</label>

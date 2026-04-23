@@ -20,7 +20,7 @@ export async function POST(req: Request) {
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
-    const { name, slug, description, parentId, featured } = await req.json();
+    const { name, slug, description, parentId, featured, imageUrl } = await req.json();
 
     if (!name || !slug) return NextResponse.json({ error: "Name and slug are required." }, { status: 400 });
 
@@ -28,7 +28,7 @@ export async function POST(req: Request) {
     if (existing) return NextResponse.json({ error: "A category with this slug already exists." }, { status: 400 });
 
     const category = await db.category.create({
-      data: { name, slug, description, parentId: parentId || null, featured },
+      data: { name, slug, description, parentId: parentId || null, featured, imageUrl: imageUrl || null },
     });
     return NextResponse.json(category, { status: 201 });
   } catch (error) {
