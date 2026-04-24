@@ -2,6 +2,8 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import HeroSection from "@/components/store/HeroSection";
 
+export const dynamic = "force-dynamic";
+
 export default async function HomePage() {
   const featuredProducts = await db.product.findMany({
     where: { status: "ACTIVE" },
