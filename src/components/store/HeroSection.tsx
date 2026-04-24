@@ -81,11 +81,11 @@ export default function HeroSection({ categories }: Props) {
             alt={slide.label}
             className="w-full h-full object-cover"
             style={{
-              opacity: animating ? 0 : 0.35,
+              opacity: animating ? 0 : 1,
               transition: "opacity 0.6s ease",
             }}
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-black/10" />
         </div>
       )}
 
