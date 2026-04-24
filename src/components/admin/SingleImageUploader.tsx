@@ -7,9 +7,10 @@ interface Props {
   value?: string;
   onChange: (url: string) => void;
   label?: string;
+  uploadType?: "product" | "banner";
 }
 
-export default function SingleImageUploader({ value, onChange, label = "Upload Image" }: Props) {
+export default function SingleImageUploader({ value, onChange, label = "Upload Image", uploadType = "banner" }: Props) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -31,6 +32,7 @@ export default function SingleImageUploader({ value, onChange, label = "Upload I
 
     const formData = new FormData();
     formData.append("file", file);
+    formData.append("type", uploadType);
 
     try {
       const res = await fetch("/api/admin/upload", {
