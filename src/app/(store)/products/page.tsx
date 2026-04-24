@@ -44,12 +44,12 @@ export default async function ProductsPage({
         {/* Category filter */}
         <div className="flex gap-2 flex-wrap">
           <Link href="/products"
-            className={`px-4 py-2 text-xs tracking-widest uppercase rounded-full border border-[#111] transition-colors ${!searchParams.category ? "bg-[#111] text-white" : "hover:bg-gray-50"}`}>
+            className={`px-4 py-2 text-xs tracking-widest uppercase rounded-full border border-[#111] dark:border-white transition-colors ${!searchParams.category ? "bg-[#111] dark:bg-white text-white dark:text-[#111]" : "hover:bg-gray-50 dark:hover:bg-white/10"}`}>
             All
           </Link>
           {categories.map(cat => (
             <Link key={cat.id} href={`/products?category=${cat.slug}`}
-              className={`px-4 py-2 text-xs tracking-widest uppercase rounded-full border border-[#111] transition-colors ${searchParams.category === cat.slug ? "bg-[#111] text-white" : "hover:bg-gray-50"}`}>
+              className={`px-4 py-2 text-xs tracking-widest uppercase rounded-full border border-[#111] dark:border-white transition-colors ${searchParams.category === cat.slug ? "bg-[#111] dark:bg-white text-white dark:text-[#111]" : "hover:bg-gray-50 dark:hover:bg-white/10"}`}>
               {cat.name}
             </Link>
           ))}
@@ -62,7 +62,7 @@ export default async function ProductsPage({
           <p className="text-4xl mb-4">👔</p>
           <h2 className="text-lg font-semibold mb-2">No products found</h2>
           <p className="text-sm opacity-50 mb-6">Try a different category or check back soon.</p>
-          <Link href="/products" className="bg-[#111] text-white text-xs px-6 py-3 rounded tracking-widest uppercase">
+          <Link href="/products" className="bg-[#111] dark:bg-white text-white dark:text-[#111] text-xs px-6 py-3 rounded tracking-widest uppercase hover:bg-black dark:hover:bg-gray-200 transition-colors">
             View All Products
           </Link>
         </div>
@@ -70,7 +70,7 @@ export default async function ProductsPage({
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-8">
           {products.map(product => (
             <Link key={product.id} href={`/products/${product.slug}`} className="group cursor-pointer card-lift rounded-xl">
-              <div className="bg-gray-100 rounded-xl h-52 md:h-80 flex items-center justify-center mb-3 md:mb-4 relative overflow-hidden">
+              <div className="bg-gray-100 dark:bg-white/5 rounded-xl h-52 md:h-80 flex items-center justify-center mb-3 md:mb-4 relative overflow-hidden">
                 {product.images[0] ? (
                   <img src={product.images[0].url} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                 ) : (

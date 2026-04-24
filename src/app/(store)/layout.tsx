@@ -4,7 +4,7 @@ import Link from "next/link";
 
 export default function StoreLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="bg-white text-[#111] min-h-screen" style={{ fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif" }}>
+    <div className="bg-white dark:bg-black text-[#111] dark:text-[#f5f5f0] min-h-screen transition-colors duration-300" style={{ fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif" }}>
       <StoreNav />
       <CartDrawer />
       {children}

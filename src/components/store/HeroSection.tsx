@@ -70,8 +70,7 @@ export default function HeroSection({ categories }: Props) {
   const slide = slides[active];
 
   return (
-    <div className="relative min-h-[560px] flex items-end overflow-hidden"
-      style={{ background: "linear-gradient(135deg, #c8c4be 0%, #b5b0aa 100%)" }}>
+    <div className="relative min-h-[560px] flex items-end overflow-hidden bg-gradient-to-br from-[#c8c4be] to-[#b5b0aa] dark:from-[#2a2a2a] dark:to-[#1a1a1a]">
 
       {/* Background image from collection */}
       {slide.imageUrl && (
@@ -91,12 +90,12 @@ export default function HeroSection({ categories }: Props) {
 
       {/* Animated background text */}
       <div className="absolute top-0 left-0 right-0 flex justify-between px-6 md:px-10 pt-5 z-10 select-none pointer-events-none">
-        <span className="text-6xl md:text-8xl font-black leading-none"
-          style={{ color: "rgba(0,0,0,0.06)", transition: "opacity 0.6s ease", opacity: visible ? 1 : 0 }}>
+        <span className="text-6xl md:text-8xl font-black leading-none text-black/5 dark:text-white/5"
+          style={{ transition: "opacity 0.6s ease", opacity: visible ? 1 : 0 }}>
           FOR
         </span>
-        <span className="text-6xl md:text-8xl font-black leading-none"
-          style={{ color: "rgba(0,0,0,0.06)", transition: "opacity 0.6s ease 0.2s", opacity: visible ? 1 : 0 }}>
+        <span className="text-6xl md:text-8xl font-black leading-none text-black/5 dark:text-white/5"
+          style={{ transition: "opacity 0.6s ease 0.2s", opacity: visible ? 1 : 0 }}>
           EVERYONE
         </span>
       </div>
@@ -123,7 +122,7 @@ export default function HeroSection({ categories }: Props) {
               style={{
                 height: 2,
                 width: i === active ? 32 : 16,
-                background: slide.imageUrl ? "#fff" : "#111",
+                background: slide.imageUrl ? "#fff" : "currentColor",
                 opacity: i === active ? 1 : 0.3,
                 transition: "all 0.4s ease",
                 cursor: "pointer",
@@ -176,7 +175,7 @@ export default function HeroSection({ categories }: Props) {
               className={`border px-6 py-2.5 text-xs tracking-widest uppercase font-medium transition-colors duration-200 ${
                 slide.imageUrl
                   ? "border-white text-white hover:bg-white hover:text-[#111]"
-                  : "border-[#111] hover:bg-[#111] hover:text-white"
+                  : "border-[#111] text-[#111] hover:bg-[#111] hover:text-white dark:border-white dark:text-white dark:hover:bg-white dark:hover:text-[#111]"
               }`}>
               Shop Now
             </Link>
@@ -190,7 +189,7 @@ export default function HeroSection({ categories }: Props) {
         {/* Year stamp */}
         <div className="absolute right-6 md:right-10 bottom-12 flex items-center gap-2">
           <div className="w-2 h-2 rounded-full opacity-40"
-            style={{ background: slide.imageUrl ? "white" : "#111" }} />
+            style={{ background: slide.imageUrl ? "white" : "currentColor" }} />
           <span className="text-xs tracking-widest opacity-40"
             style={{ color: slide.imageUrl ? "white" : "inherit" }}>
             2026
@@ -199,8 +198,8 @@ export default function HeroSection({ categories }: Props) {
       </div>
 
       {/* Progress bar */}
-      <div className="absolute bottom-0 left-0 right-0 h-px bg-black/10">
-        <div className="h-full bg-[#111]/30"
+      <div className="absolute bottom-0 left-0 right-0 h-px bg-black/10 dark:bg-white/10">
+        <div className="h-full bg-[#111]/30 dark:bg-white/30"
           style={{ width: `${((active + 1) / slides.length) * 100}%`, transition: "width 0.4s ease" }} />
       </div>
 
@@ -211,7 +210,7 @@ export default function HeroSection({ categories }: Props) {
             className="px-2 md:px-4 py-1 text-[9px] md:text-xs tracking-widest uppercase transition-all"
             style={{
               opacity: i === active ? 1 : 0.35,
-              borderBottom: i === active ? `2px solid ${slide.imageUrl ? "white" : "#111"}` : "2px solid transparent",
+              borderBottom: i === active ? `2px solid ${slide.imageUrl ? "white" : "currentColor"}` : "2px solid transparent",
               fontWeight: i === active ? 700 : 400,
               background: "none",
               border: "none",

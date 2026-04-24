@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ShoppingCart, Menu, X } from "lucide-react";
 import CartIcon from "@/components/store/CartIcon";
+import DarkModeToggle from "@/components/store/DarkModeToggle";
 
 const navLinks = [
   { label: "Home", href: "/" },
@@ -50,14 +51,11 @@ export default function StoreNav() {
 
       {/* Main nav */}
       <nav
-        className="sticky top-0 z-40 px-6 md:px-10 flex items-center justify-between h-14 transition-all duration-300"
-        style={{
-          backdropFilter: "blur(20px)",
-          WebkitBackdropFilter: "blur(20px)",
-          background: scrolled ? "rgba(255,255,255,0.92)" : "rgba(255,255,255,0.55)",
-          borderBottom: scrolled ? "1px solid rgba(0,0,0,0.08)" : "1px solid rgba(255,255,255,0.4)",
-          boxShadow: scrolled ? "0 4px 32px rgba(0,0,0,0.08)" : "0 2px 24px rgba(0,0,0,0.04)",
-        }}>
+        className={`sticky top-0 z-40 px-6 md:px-10 flex items-center justify-between h-14 transition-all duration-300 backdrop-blur-xl ${
+          scrolled 
+            ? "bg-white/90 dark:bg-[#0f0f0f]/90 border-b border-black/10 dark:border-white/10 shadow-[0_4px_32px_rgba(0,0,0,0.08)] dark:shadow-none" 
+            : "bg-white/50 dark:bg-[#0f0f0f]/50 border-b border-white/40 dark:border-white/5 shadow-[0_2px_24px_rgba(0,0,0,0.04)] dark:shadow-none"
+        }`}>
 
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 font-black text-sm tracking-widest uppercase">
@@ -74,15 +72,19 @@ export default function StoreNav() {
               `}>
               {link.label}
               {pathname === link.href && (
-                <span className="absolute -bottom-1 left-0 right-0 h-px bg-[#111]" />
+                <span className="absolute -bottom-1 left-0 right-0 h-px bg-[#111] dark:bg-white" />
               )}
             </Link>
           ))}
-          <CartIcon />
+          <div className="flex items-center gap-4">
+            <DarkModeToggle />
+            <CartIcon />
+          </div>
         </div>
 
         {/* Mobile right side */}
         <div className="flex md:hidden items-center gap-4">
+          <DarkModeToggle />
           <CartIcon />
           <button onClick={() => setMenuOpen(v => !v)} className="p-1">
             {menuOpen ? <X size={20} /> : <Menu size={20} />}
@@ -92,13 +94,13 @@ export default function StoreNav() {
 
       {/* Mobile menu overlay */}
       {menuOpen && (
-        <div className="fixed inset-0 z-30 bg-white flex flex-col pt-28 px-8"
+        <div className="fixed inset-0 z-30 bg-white dark:bg-[#0f0f0f] flex flex-col pt-28 px-8"
           style={{ fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif" }}>
           <div className="flex flex-col gap-1">
             {navLinks.map((link, i) => (
               <Link key={link.href} href={link.href}
-                className={`text-4xl font-black tracking-tight uppercase py-3 border-b border-gray-100 transition-colors
-                  ${pathname === link.href ? "text-[#111]" : "text-gray-300 hover:text-[#111]"}`}
+                className={`text-4xl font-black tracking-tight uppercase py-3 border-b border-gray-100 dark:border-white/10 transition-colors
+                  ${pathname === link.href ? "text-[#111] dark:text-white" : "text-gray-300 dark:text-gray-600 hover:text-[#111] dark:hover:text-white"}`}
                 style={{ animationDelay: `${i * 60}ms` }}>
                 {link.label}
               </Link>
