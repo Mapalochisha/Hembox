@@ -3,14 +3,43 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 
-const slides = [
+interface HeroSlide {
+  label: string;
+  headline: string;
+  sub: string;
+  href: string;
+  imageUrl?: string | null;
+}
+
+interface Props {
+  categories?: {
+    id: string;
+    name: string;
+    slug: string;
+    description?: string | null;
+    imageUrl?: string | null;
+  }[];
+}
+
+const fallbackSlides: HeroSlide[] = [
   { label: "New Arrivals — 2026", headline: "DRESSED\nFOR LIFE.", sub: "Premium everyday clothing", href: "/products" },
   { label: "Women's Edit", headline: "EFFORTLESS\nSTYLE.", sub: "The new women's collection", href: "/categories/women" },
   { label: "Men's Collection", headline: "SHARP &\nMODERN.", sub: "Refined menswear essentials", href: "/categories/men" },
   { label: "Kids Range", headline: "PLAY IN\nSTYLE.", sub: "Built for active little ones", href: "/categories/kids" },
 ];
 
-export default function HeroSection() {
+export default function HeroSection({ categories }: Props) {
+  const slides: HeroSlide[] =
+    categories && categories.length > 0
+      ? categories.map((cat) => ({
+          label: cat.name,
+          headline: cat.name.toUpperCase().replace(/\s+/g, "\n"),
+          sub: cat.description || `Shop ${cat.name}`,
+          href: `/categories/${cat.slug}`,
+          imageUrl: cat.imageUrl,
+        }))
+      : fallbackSlides;
+
   const [active, setActive] = useState(0);
   const [animating, setAnimating] = useState(false);
   const [visible, setVisible] = useState(false);
@@ -27,7 +56,7 @@ export default function HeroSection() {
       goToSlide((active + 1) % slides.length);
     }, 5000);
     return () => clearInterval(interval);
-  }, [active]);
+  }, [active, slides.length]);
 
   function goToSlide(index: number) {
     if (animating || index === active) return;
@@ -44,6 +73,22 @@ export default function HeroSection() {
     <div className="relative min-h-[560px] flex items-end overflow-hidden"
       style={{ background: "linear-gradient(135deg, #c8c4be 0%, #b5b0aa 100%)" }}>
 
+      {/* Background image from collection */}
+      {slide.imageUrl && (
+        <div className="absolute inset-0 z-0">
+          <img
+            src={slide.imageUrl}
+            alt={slide.label}
+            className="w-full h-full object-cover"
+            style={{
+              opacity: animating ? 0 : 0.35,
+              transition: "opacity 0.6s ease",
+            }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+        </div>
+      )}
+
       {/* Animated background text */}
       <div className="absolute top-0 left-0 right-0 flex justify-between px-6 md:px-10 pt-5 z-10 select-none pointer-events-none">
         <span className="text-6xl md:text-8xl font-black leading-none"
@@ -56,27 +101,42 @@ export default function HeroSection() {
         </span>
       </div>
 
-      {/* Center image placeholder */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <span className="text-[160px] md:text-[200px]"
-          style={{ opacity: 0.15, transition: "transform 0.6s ease, opacity 0.6s ease", transform: visible ? "scale(1)" : "scale(0.9)" }}>
-          👔
-        </span>
-      </div>
+      {/* Center image placeholder — only show when no collection image */}
+      {!slide.imageUrl && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <span className="text-[160px] md:text-[200px]"
+            style={{ opacity: 0.15, transition: "transform 0.6s ease, opacity 0.6s ease", transform: visible ? "scale(1)" : "scale(0.9)" }}>
+            👔
+          </span>
+        </div>
+      )}
 
       {/* Slide indicators — top right */}
       <div className="absolute top-6 right-6 md:right-10 z-20 text-right">
-        <p className="text-xs opacity-50 mb-2 tracking-widest">0{active + 1} / 0{slides.length}</p>
+        <p className="text-xs opacity-50 mb-2 tracking-widest"
+          style={{ color: slide.imageUrl ? "white" : "inherit" }}>
+          0{active + 1} / 0{slides.length}
+        </p>
         <div className="flex flex-col gap-1.5 items-end">
           {slides.map((_, i) => (
             <button key={i} onClick={() => goToSlide(i)}
-              style={{ height: 2, width: i === active ? 32 : 16, background: "#111", opacity: i === active ? 1 : 0.3, transition: "all 0.4s ease", cursor: "pointer", border: "none", padding: 0 }} />
+              style={{
+                height: 2,
+                width: i === active ? 32 : 16,
+                background: slide.imageUrl ? "#fff" : "#111",
+                opacity: i === active ? 1 : 0.3,
+                transition: "all 0.4s ease",
+                cursor: "pointer",
+                border: "none",
+                padding: 0,
+              }} />
           ))}
         </div>
       </div>
 
       {/* Scroll indicator */}
-      <div className="absolute left-4 top-1/2 -translate-y-1/2 -rotate-90 text-[9px] tracking-[4px] opacity-35 z-20 hidden md:block select-none">
+      <div className="absolute left-4 top-1/2 -translate-y-1/2 -rotate-90 text-[9px] tracking-[4px] opacity-35 z-20 hidden md:block select-none"
+        style={{ color: slide.imageUrl ? "white" : "inherit" }}>
         SCROLL
       </div>
 
@@ -85,31 +145,56 @@ export default function HeroSection() {
         <div className="max-w-2xl">
           {/* Label */}
           <p className="text-xs tracking-[4px] uppercase mb-3"
-            style={{ opacity: animating ? 0 : 0.5, transform: animating ? "translateY(8px)" : "translateY(0)", transition: "all 0.4s ease" }}>
+            style={{
+              opacity: animating ? 0 : 0.5,
+              transform: animating ? "translateY(8px)" : "translateY(0)",
+              transition: "all 0.4s ease",
+              color: slide.imageUrl ? "white" : "inherit",
+            }}>
             {slide.label}
           </p>
 
           {/* Headline */}
           <h1 className="text-6xl md:text-8xl font-black leading-[0.92] tracking-[-3px] mb-6 whitespace-pre-line"
-            style={{ opacity: animating ? 0 : 1, transform: animating ? "translateY(16px)" : "translateY(0)", transition: "all 0.4s ease 0.05s" }}>
+            style={{
+              opacity: animating ? 0 : 1,
+              transform: animating ? "translateY(16px)" : "translateY(0)",
+              transition: "all 0.4s ease 0.05s",
+              color: slide.imageUrl ? "white" : "inherit",
+            }}>
             {slide.headline}
           </h1>
 
           {/* CTA */}
           <div className="flex items-center gap-4"
-            style={{ opacity: animating ? 0 : 1, transform: animating ? "translateY(12px)" : "translateY(0)", transition: "all 0.4s ease 0.1s" }}>
+            style={{
+              opacity: animating ? 0 : 1,
+              transform: animating ? "translateY(12px)" : "translateY(0)",
+              transition: "all 0.4s ease 0.1s",
+            }}>
             <Link href={slide.href}
-              className="border border-[#111] px-6 py-2.5 text-xs tracking-widest uppercase font-medium hover:bg-[#111] hover:text-white transition-colors duration-200">
+              className={`border px-6 py-2.5 text-xs tracking-widest uppercase font-medium transition-colors duration-200 ${
+                slide.imageUrl
+                  ? "border-white text-white hover:bg-white hover:text-[#111]"
+                  : "border-[#111] hover:bg-[#111] hover:text-white"
+              }`}>
               Shop Now
             </Link>
-            <span className="text-xs opacity-40">{slide.sub}</span>
+            <span className="text-xs opacity-40"
+              style={{ color: slide.imageUrl ? "white" : "inherit" }}>
+              {slide.sub}
+            </span>
           </div>
         </div>
 
         {/* Year stamp */}
         <div className="absolute right-6 md:right-10 bottom-12 flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-[#111] opacity-40" />
-          <span className="text-xs tracking-widest opacity-40">2026</span>
+          <div className="w-2 h-2 rounded-full opacity-40"
+            style={{ background: slide.imageUrl ? "white" : "#111" }} />
+          <span className="text-xs tracking-widest opacity-40"
+            style={{ color: slide.imageUrl ? "white" : "inherit" }}>
+            2026
+          </span>
         </div>
       </div>
 
@@ -124,7 +209,15 @@ export default function HeroSection() {
         {slides.map((s, i) => (
           <button key={i} onClick={() => goToSlide(i)}
             className="px-2 md:px-4 py-1 text-[9px] md:text-xs tracking-widest uppercase transition-all"
-            style={{ opacity: i === active ? 1 : 0.35, borderBottom: i === active ? "2px solid #111" : "2px solid transparent", fontWeight: i === active ? 700 : 400, background: "none", border: "none", cursor: "pointer" }}>
+            style={{
+              opacity: i === active ? 1 : 0.35,
+              borderBottom: i === active ? `2px solid ${slide.imageUrl ? "white" : "#111"}` : "2px solid transparent",
+              fontWeight: i === active ? 700 : 400,
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              color: slide.imageUrl ? "white" : "inherit",
+            }}>
             {s.label}
           </button>
         ))}

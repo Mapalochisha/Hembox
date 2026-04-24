@@ -21,7 +21,7 @@ export default async function HomePage() {
 
   return (
     <div>
-      <HeroSection />
+      <HeroSection categories={featuredCategories} />
 
       {/* New Drops */}
       <div className="px-6 md:px-10 py-14">
@@ -81,7 +81,11 @@ export default async function HomePage() {
           {featuredCategories.length > 0 ? featuredCategories.map((cat) => (
             <Link key={cat.id} href={`/categories/${cat.slug}`} className="group cursor-pointer card-lift rounded-xl">
               <div className="bg-gray-100 h-64 flex items-center justify-center mb-4 rounded relative overflow-hidden">
-                <span className="text-8xl opacity-20">👔</span>
+                {cat.imageUrl ? (
+                  <img src={cat.imageUrl} alt={cat.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                ) : (
+                  <span className="text-8xl opacity-20">👔</span>
+                )}
               </div>
               <p className="text-sm font-semibold text-center mb-3">{cat.name}</p>
               <div className="text-center">
