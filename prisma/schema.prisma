@@ -136,6 +136,7 @@ model Customer {
   id            String         @id @default(cuid())
   email         String         @unique
   name          String?
+  passwordHash  String?
   phone         String?
   emailVerified DateTime?
   createdAt     DateTime       @default(now())

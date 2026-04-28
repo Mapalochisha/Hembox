@@ -10,7 +10,7 @@ export default function OrderSuccessPage({
   return (
     <div className="px-10 py-24 max-w-2xl mx-auto text-center">
       {/* Icon */}
-      <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-8">
+      <div className="w-20 h-20 bg-green-50 dark:bg-green-950/20 rounded-full flex items-center justify-center mx-auto mb-8">
         <span className="text-4xl">✓</span>
       </div>
 
@@ -20,13 +20,13 @@ export default function OrderSuccessPage({
       </p>
 
       {/* Order number */}
-      <div className="bg-gray-50 rounded-xl px-8 py-5 inline-block mb-10">
+      <div className="bg-gray-50 dark:bg-white/5 border border-transparent dark:border-white/5 rounded-xl px-8 py-5 inline-block mb-10">
         <p className="text-[10px] tracking-widest uppercase opacity-40 mb-1">Order Number</p>
         <p className="font-black text-xl tracking-widest">{orderNumber}</p>
       </div>
 
       {/* What happens next */}
-      <div className="bg-gray-50 rounded-xl p-6 text-left mb-10">
+      <div className="bg-gray-50 dark:bg-white/5 border border-transparent dark:border-white/5 rounded-xl p-6 text-left mb-10">
         <h2 className="font-black text-xs tracking-widest uppercase mb-5">What Happens Next</h2>
         <div className="space-y-4">
           {[
@@ -46,13 +46,13 @@ export default function OrderSuccessPage({
         </div>
       </div>
 
-      <div className="flex gap-3 justify-center">
+      <div className="flex flex-col sm:flex-row gap-3 justify-center">
         <Link href="/products"
-          className="bg-[#111] text-white text-xs px-8 py-4 tracking-widest uppercase rounded hover:bg-black transition-colors">
+          className="bg-[#111] dark:bg-white text-white dark:text-black text-xs px-8 py-4 tracking-widest uppercase rounded hover:opacity-90 transition-opacity">
           Continue Shopping
         </Link>
         <Link href="/"
-          className="border border-gray-200 text-xs px-8 py-4 tracking-widest uppercase rounded hover:bg-gray-50 transition-colors">
+          className="border border-gray-200 dark:border-white/10 text-xs px-8 py-4 tracking-widest uppercase rounded hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
           Back to Home
         </Link>
       </div>

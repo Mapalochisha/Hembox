@@ -24,6 +24,7 @@ export async function POST(req: Request) {
     // Find or create customer
     let customer = await db.customer.findUnique({
       where: { email: shipping.email },
+      include: { addresses: true },
     });
 
     if (!customer) {
@@ -32,6 +33,41 @@ export async function POST(req: Request) {
           email: shipping.email,
           name: shipping.name,
           phone: shipping.phone,
+        },
+        include: { addresses: true },
+      });
+    } else {
+      // Update customer info if missing
+      const updateData: any = {};
+      if (!customer.name) updateData.name = shipping.name;
+      if (!customer.phone) updateData.phone = shipping.phone;
+      
+      if (Object.keys(updateData).length > 0) {
+        customer = await db.customer.update({
+          where: { id: customer.id },
+          data: updateData,
+          include: { addresses: true },
+        });
+      }
+    }
+
+    // Create address if customer has none
+    if (customer.addresses.length === 0) {
+      const nameParts = shipping.name.split(" ");
+      const firstName = nameParts[0];
+      const lastName = nameParts.slice(1).join(" ") || firstName;
+
+      await db.address.create({
+        data: {
+          customerId: customer.id,
+          firstName,
+          lastName,
+          line1: shipping.address,
+          city: shipping.city,
+          state: shipping.province,
+          country: "Zambia",
+          phone: shipping.phone,
+          isDefault: true,
         },
       });
     }

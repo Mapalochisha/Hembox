@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ShoppingCart, Menu, X } from "lucide-react";
+import { useSession, signOut } from "next-auth/react";
+import { ShoppingCart, Menu, X, User, LogOut } from "lucide-react";
 import CartIcon from "@/components/store/CartIcon";
 import DarkModeToggle from "@/components/store/DarkModeToggle";
 
@@ -16,6 +17,7 @@ const navLinks = [
 ];
 
 export default function StoreNav() {
+  const { data: session, status } = useSession();
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -43,9 +45,25 @@ export default function StoreNav() {
           ))}
         </div>
         <div className="flex gap-4 opacity-70 mx-auto md:mx-0">
-          <Link href="/account/login" className="hover:opacity-100 transition-opacity">Log In</Link>
-          <span className="opacity-30">|</span>
-          <Link href="/account/register" className="hover:opacity-100 transition-opacity">Register</Link>
+          {status === "authenticated" ? (
+            <>
+              <Link href="/account" className="hover:opacity-100 transition-opacity flex items-center gap-1">
+                <User size={10} />
+                My Account
+              </Link>
+              <span className="opacity-30">|</span>
+              <button onClick={() => signOut()} className="hover:opacity-100 transition-opacity flex items-center gap-1">
+                <LogOut size={10} />
+                Logout
+              </button>
+            </>
+          ) : (
+            <>
+              <Link href="/account/login" className="hover:opacity-100 transition-opacity">Log In</Link>
+              <span className="opacity-30">|</span>
+              <Link href="/account/register" className="hover:opacity-100 transition-opacity">Register</Link>
+            </>
+          )}
         </div>
       </div>
 
@@ -105,6 +123,14 @@ export default function StoreNav() {
                 {link.label}
               </Link>
             ))}
+            {status === "authenticated" && (
+              <Link href="/account"
+                className={`text-4xl font-black tracking-tight uppercase py-3 border-b border-gray-100 dark:border-white/10 transition-colors
+                  ${pathname === "/account" ? "text-[#111] dark:text-white" : "text-gray-300 dark:text-gray-600 hover:text-[#111] dark:hover:text-white"}`}
+                style={{ animationDelay: `${navLinks.length * 60}ms` }}>
+                Account
+              </Link>
+            )}
           </div>
           <div className="mt-auto pb-12">
             <div className="flex gap-6 mb-6">

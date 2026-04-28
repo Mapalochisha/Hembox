@@ -42,7 +42,10 @@ export default async function AdminLayout({
             <Store size={20} className="text-white/70" />
             <span className="font-bold text-lg tracking-tight">HemBox</span>
           </div>
-          <p className="text-white/40 text-xs mt-0.5">Admin Dashboard</p>
+          <p className="text-white/40 text-xs mt-0.5 mb-3">Admin Dashboard</p>
+          <Link href="/" className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/5 border border-white/10 rounded text-[10px] font-bold uppercase tracking-widest text-white/50 hover:text-white hover:bg-white/10 transition-all">
+            View Store
+          </Link>
         </div>
         <nav className="flex-1 px-3 py-4 space-y-0.5">
           {navItems.map((item) => (
