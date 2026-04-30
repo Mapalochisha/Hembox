@@ -23,6 +23,9 @@ async function main() {
     { key: "tax_rate", value: "0" },
     { key: "free_shipping_threshold", value: "500" },
     { key: "default_shipping_cost", value: "50" },
+    { key: "about_us", value: "Welcome to HemBox, your number one source for all things fashion. We're dedicated to giving you the very best of clothing, with a focus on dependability, customer service and uniqueness." },
+    { key: "privacy_policy", value: "This privacy policy has been compiled to better serve those who are concerned with how their 'Personally Identifiable Information' (PII) is being used online. Please read our privacy policy carefully to get a clear understanding of how we collect, use, protect or otherwise handle your Personally Identifiable Information in accordance with our website." },
+    { key: "terms_conditions", value: "By accessing this website we assume you accept these terms and conditions. Do not continue to use HemBox if you do not agree to take all of the terms and conditions stated on this page." },
   ];
   for (const s of settingsList) {
     await prisma.storeSetting.upsert({ where: { key: s.key }, update: {}, create: s });

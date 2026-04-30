@@ -61,15 +61,15 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
                 { label: "Sale", href: "/products" },
               ]},
               { title: "Help", links: [
-                { label: "Shipping Info", href: "/" },
-                { label: "Returns", href: "/" },
-                { label: "Size Guide", href: "/" },
-                { label: "Contact Us", href: "/" },
+                { label: "Shipping Info", href: "/shipping-info" },
+                { label: "Returns", href: "/returns" },
+                { label: "Size Guide", href: "/size-guide" },
+                { label: "Contact Us", href: "/contact" },
               ]},
               { title: "Company", links: [
-                { label: "About Us", href: "/" },
-                { label: "Privacy Policy", href: "/" },
-                { label: "Terms", href: "/" },
+                { label: "About Us", href: "/about" },
+                { label: "Privacy Policy", href: "/privacy" },
+                { label: "Terms", href: "/terms" },
               ]},
             ].map(col => (
               <div key={col.title}>

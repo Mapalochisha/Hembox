@@ -14,7 +14,7 @@ export default function AdminLoginPage() {
     e.preventDefault();
     setError("");
     setLoading(true);
-    const result = await signIn("credentials", { email, password, redirect: false });
+    const result = await signIn("credentials", { email, password, userType: "ADMIN", redirect: false });
     setLoading(false);
     if (result?.error) {
       setError("Invalid email or password.");

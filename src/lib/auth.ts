@@ -17,29 +17,29 @@ export const authOptions: NextAuthOptions = {
         userType: { label: "User Type", type: "hidden" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) return null;
+        if (!credentials?.email || !credentials?.password || !credentials?.userType) return null;
 
-        // Try Admin first if explicitly requested or check both
-        const admin = await db.adminUser.findUnique({
-          where: { email: credentials.email },
-        });
+        if (credentials.userType === "ADMIN") {
+          const admin = await db.adminUser.findUnique({
+            where: { email: credentials.email },
+          });
 
-        if (admin && admin.passwordHash) {
-          const valid = await bcrypt.compare(credentials.password, admin.passwordHash);
-          if (valid) {
-            return { id: admin.id, email: admin.email, name: admin.name, role: admin.role };
+          if (admin && admin.passwordHash) {
+            const valid = await bcrypt.compare(credentials.password, admin.passwordHash);
+            if (valid) {
+              return { id: admin.id, email: admin.email, name: admin.name, role: admin.role };
+            }
           }
-        }
+        } else if (credentials.userType === "CUSTOMER") {
+          const customer = await db.customer.findUnique({
+            where: { email: credentials.email },
+          });
 
-        // Try Customer
-        const customer = await db.customer.findUnique({
-          where: { email: credentials.email },
-        });
-
-        if (customer && customer.passwordHash) {
-          const valid = await bcrypt.compare(credentials.password, customer.passwordHash);
-          if (valid) {
-            return { id: customer.id, email: customer.email, name: customer.name, role: "CUSTOMER" };
+          if (customer && customer.passwordHash) {
+            const valid = await bcrypt.compare(credentials.password, customer.passwordHash);
+            if (valid) {
+              return { id: customer.id, email: customer.email, name: customer.name, role: "CUSTOMER" };
+            }
           }
         }
 
