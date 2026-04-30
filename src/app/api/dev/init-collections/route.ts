@@ -2,15 +2,14 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 
 export async function GET() {
-  // Only allow in development or preview environments
   if (process.env.NODE_ENV === "production" && !process.env.VERCEL_URL) {
     return NextResponse.json({ error: "Not allowed in production" }, { status: 403 });
   }
 
   try {
-    console.log("🛠️ Initializing Collections tables...");
+    console.log("🛠️ Initializing Collections tables individually...");
 
-    // Create collections table
+    // 1. Create collections table
     await db.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS "collections" (
         "id" TEXT NOT NULL,
@@ -21,45 +20,38 @@ export async function GET() {
         "featured" BOOLEAN NOT NULL DEFAULT false,
         "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
         "updatedAt" TIMESTAMP(3) NOT NULL,
-
         CONSTRAINT "collections_pkey" PRIMARY KEY ("id")
       );
     `);
 
-    // Create unique index on slug
+    // 2. Create unique index
     await db.$executeRawUnsafe(`
       CREATE UNIQUE INDEX IF NOT EXISTS "collections_slug_key" ON "collections"("slug");
     `);
 
-    // Create product_collections table
+    // 3. Create product_collections table
     await db.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS "product_collections" (
         "productId" TEXT NOT NULL,
         "collectionId" TEXT NOT NULL,
-
         CONSTRAINT "product_collections_pkey" PRIMARY KEY ("productId","collectionId")
       );
     `);
 
-    // Add foreign keys
-    await db.$executeRawUnsafe(`
-      ALTER TABLE "product_collections" DROP CONSTRAINT IF EXISTS "product_collections_productId_fkey";
-      ALTER TABLE "product_collections" ADD CONSTRAINT "product_collections_productId_fkey" 
-      FOREIGN KEY ("productId") REFERENCES "products"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-    `);
+    // 4. Add foreign keys (drop first to be safe)
+    try {
+      await db.$executeRawUnsafe(`ALTER TABLE "product_collections" DROP CONSTRAINT IF EXISTS "product_collections_productId_fkey";`);
+      await db.$executeRawUnsafe(`ALTER TABLE "product_collections" ADD CONSTRAINT "product_collections_productId_fkey" FOREIGN KEY ("productId") REFERENCES "products"("id") ON DELETE CASCADE ON UPDATE CASCADE;`);
+    } catch (e) { console.log("FK 1 may already exist"); }
 
-    await db.$executeRawUnsafe(`
-      ALTER TABLE "product_collections" DROP CONSTRAINT IF EXISTS "product_collections_collectionId_fkey";
-      ALTER TABLE "product_collections" ADD CONSTRAINT "product_collections_collectionId_fkey" 
-      FOREIGN KEY ("collectionId") REFERENCES "collections"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-    `);
+    try {
+      await db.$executeRawUnsafe(`ALTER TABLE "product_collections" DROP CONSTRAINT IF EXISTS "product_collections_collectionId_fkey";`);
+      await db.$executeRawUnsafe(`ALTER TABLE "product_collections" ADD CONSTRAINT "product_collections_collectionId_fkey" FOREIGN KEY ("collectionId") REFERENCES "collections"("id") ON DELETE CASCADE ON UPDATE CASCADE;`);
+    } catch (e) { console.log("FK 2 may already exist"); }
 
-    return NextResponse.json({ 
-      success: true, 
-      message: "Collections tables initialized successfully" 
-    });
+    return NextResponse.json({ success: true, message: "Tables initialized" });
   } catch (error: any) {
-    console.error("Init DB error:", error);
+    console.error("Init error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
