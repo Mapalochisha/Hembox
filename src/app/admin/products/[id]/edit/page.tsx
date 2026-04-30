@@ -20,6 +20,8 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
   const [status, setStatus] = useState("DRAFT");
   const [categories, setCategories] = useState<{ id: string; name: string; parentId: string | null }[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [collections, setCollections] = useState<{ id: string; name: string }[]>([]);
+  const [selectedCollections, setSelectedCollections] = useState<string[]>([]);
   const [images, setImages] = useState<{ url: string; publicId: string; isPrimary: boolean }[]>([]);
   const [variantGroups, setVariantGroups] = useState<VariantGroup[]>([]);
 
@@ -27,12 +29,14 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
     Promise.all([
       fetch(`/api/admin/products/${params.id}`).then(r => r.json()),
       fetch("/api/admin/categories").then(r => r.json()),
-    ]).then(([data, cats]) => {
+      fetch("/api/admin/collections").then(r => r.json()),
+    ]).then(([data, cats, cols]) => {
       setName(data.name);
       setSlug(data.slug);
       setDescription(data.description ?? "");
       setStatus(data.status);
       setSelectedCategories(data.categories.map((c: any) => c.categoryId));
+      setSelectedCollections(data.collections?.map((c: any) => c.collectionId) ?? []);
       setImages((data.images ?? []).map((img: any) => ({
         url: img.url,
         publicId: img.publicId ?? "",
@@ -40,12 +44,19 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
       })));
       setVariantGroups(groupVariantsForBuilder(data.variants ?? []));
       setCategories(cats);
+      setCollections(cols);
       setFetching(false);
     });
   }, [params.id]);
 
   function toggleCategory(id: string) {
     setSelectedCategories(prev =>
+      prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]
+    );
+  }
+
+  function toggleCollection(id: string) {
+    setSelectedCollections(prev =>
       prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]
     );
   }
@@ -62,7 +73,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name, slug, description, status, selectedCategories,
+          name, slug, description, status, selectedCategories, selectedCollections,
           images: images.map((img, i) => ({
             url: img.url,
             publicId: img.publicId,
@@ -199,6 +210,25 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
             productSlug={slug}
             images={images}
           />
+        </div>
+
+        {/* Collections */}
+        <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-3">
+          <h2 className="font-semibold text-[#2D2D2D]">Collections</h2>
+          {collections.length === 0 ? (
+            <p className="text-sm text-gray-400">No collections found.</p>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              {collections.map(col => (
+                <label key={col.id} className="flex items-center gap-2 p-3 border border-gray-100 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                  <input type="checkbox" checked={selectedCollections.includes(col.id)}
+                    onChange={() => toggleCollection(col.id)}
+                    className="w-4 h-4 rounded border-gray-300 accent-[#2D2D2D]" />
+                  <span className="text-sm text-gray-700">{col.name}</span>
+                </label>
+              ))}
+            </div>
+          )}
         </div>
 
         {error && (

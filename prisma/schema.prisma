@@ -47,6 +47,7 @@ model Product {
   variants        ProductVariant[]
   images          ProductImage[]
   categories      ProductCategory[]
+  collections     ProductCollection[]
   tags            ProductTag[]
   reviews         Review[]
   orderItems      OrderItem[]
@@ -58,6 +59,28 @@ enum ProductStatus {
   DRAFT
   ACTIVE
   ARCHIVED
+}
+
+model Collection {
+  id          String              @id @default(cuid())
+  name        String
+  slug        String              @unique
+  description String?             @db.Text
+  imageUrl    String?
+  featured    Boolean             @default(false)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  products    ProductCollection[]
+  @@map("collections")
+}
+
+model ProductCollection {
+  productId    String
+  collectionId String
+  product      Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  @@id([productId, collectionId])
+  @@map("product_collections")
 }
 
 model ProductVariant {

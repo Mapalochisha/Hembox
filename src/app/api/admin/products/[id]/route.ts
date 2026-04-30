@@ -14,6 +14,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
       variants: true,
       images: true,
       categories: { include: { category: true } },
+      collections: { include: { collection: true } },
       tags: { include: { tag: true } },
     },
   });
@@ -28,7 +29,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
   try {
     const body = await req.json();
-    const { name, slug, description, status, variants, selectedCategories, images } = body;
+    const { name, slug, description, status, variants, selectedCategories, selectedCollections, images } = body;
 
     const product = await db.product.update({
       where: { id: params.id },
@@ -74,6 +75,17 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         data: selectedCategories.map((categoryId: string) => ({
           productId: params.id,
           categoryId,
+        })),
+      });
+    }
+
+    // Sync collections
+    await db.productCollection.deleteMany({ where: { productId: params.id } });
+    if (selectedCollections?.length) {
+      await db.productCollection.createMany({
+        data: selectedCollections.map((collectionId: string) => ({
+          productId: params.id,
+          collectionId,
         })),
       });
     }
