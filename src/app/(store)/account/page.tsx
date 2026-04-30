@@ -9,7 +9,15 @@ import { signOut } from "next-auth/react";
 export default async function AccountPage() {
   const session = await getServerSession(authOptions);
 
-  if (!session || (session.user as any).role !== "CUSTOMER") {
+  if (!session) {
+    redirect("/account/login");
+  }
+
+  if ((session.user as any).role === "ADMIN") {
+    redirect("/admin");
+  }
+
+  if ((session.user as any).role !== "CUSTOMER") {
     redirect("/account/login");
   }
 

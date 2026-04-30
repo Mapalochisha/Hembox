@@ -47,7 +47,10 @@ export default function StoreNav() {
         <div className="flex gap-4 opacity-70 mx-auto md:mx-0">
           {status === "authenticated" ? (
             <>
-              <Link href="/account" className="hover:opacity-100 transition-opacity flex items-center gap-1">
+              <Link 
+                href={(session.user as any).role === "ADMIN" ? "/admin" : "/account"} 
+                className="hover:opacity-100 transition-opacity flex items-center gap-1"
+              >
                 <User size={10} />
                 My Account
               </Link>
@@ -124,9 +127,9 @@ export default function StoreNav() {
               </Link>
             ))}
             {status === "authenticated" && (
-              <Link href="/account"
+              <Link href={(session.user as any).role === "ADMIN" ? "/admin" : "/account"}
                 className={`text-4xl font-black tracking-tight uppercase py-3 border-b border-gray-100 dark:border-white/10 transition-colors
-                  ${pathname === "/account" ? "text-[#111] dark:text-white" : "text-gray-300 dark:text-gray-600 hover:text-[#111] dark:hover:text-white"}`}
+                  ${pathname === "/account" || pathname === "/admin" ? "text-[#111] dark:text-white" : "text-gray-300 dark:text-gray-600 hover:text-[#111] dark:hover:text-white"}`}
                 style={{ animationDelay: `${navLinks.length * 60}ms` }}>
                 Account
               </Link>
