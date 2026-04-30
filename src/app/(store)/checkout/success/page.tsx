@@ -1,11 +1,21 @@
 import Link from "next/link";
+import { db } from "@/lib/db";
+import CreateAccountForm from "@/components/store/CreateAccountForm";
 
-export default function OrderSuccessPage({
+export default async function OrderSuccessPage({
   searchParams,
 }: {
   searchParams: { order?: string };
 }) {
   const orderNumber = searchParams.order ?? "—";
+  
+  // Fetch order to check guest status
+  const order = await db.order.findUnique({
+    where: { orderNumber },
+    include: { customer: true }
+  });
+
+  const showAccountForm = order && !order.customerId && order.guestEmail;
 
   return (
     <div className="px-10 py-24 max-w-2xl mx-auto text-center">
@@ -18,6 +28,14 @@ export default function OrderSuccessPage({
       <p className="text-sm opacity-50 leading-relaxed mb-8 max-w-md mx-auto">
         Thank you for your order. Our team will reach out to you shortly via WhatsApp or phone to arrange payment and confirm delivery.
       </p>
+      
+      {showAccountForm && (
+        <div className="mb-10 max-w-md mx-auto">
+          <CreateAccountForm email={order.guestEmail!} orderId={order.id} />
+        </div>
+      )}
+...
+
 
       {/* Order number */}
       <div className="bg-gray-50 dark:bg-white/5 border border-transparent dark:border-white/5 rounded-xl px-8 py-5 inline-block mb-10">
