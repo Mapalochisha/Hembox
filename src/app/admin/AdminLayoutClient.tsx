@@ -48,8 +48,14 @@ export default function AdminLayoutClient({
           {!isCollapsed ? (
             <>
               <div className="flex items-center gap-2">
-                <Store size={20} className="text-white/70" />
-                <span className="font-bold text-lg tracking-tight">HemBox</span>
+                <button 
+                  onClick={() => setIsCollapsed(true)}
+                  className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+                  title="Collapse Sidebar"
+                >
+                  <Store size={20} className="text-white/70" />
+                  <span className="font-bold text-lg tracking-tight">HemBox</span>
+                </button>
               </div>
               <p className="text-white/40 text-xs mt-0.5 mb-3">Admin Dashboard</p>
               <Link href="/" className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/5 border border-white/10 rounded text-[10px] font-bold uppercase tracking-widest text-white/50 hover:text-white hover:bg-white/10 transition-all">
@@ -57,15 +63,14 @@ export default function AdminLayoutClient({
               </Link>
             </>
           ) : (
-            <Store size={24} className="text-white/70" />
+            <button 
+              onClick={() => setIsCollapsed(false)}
+              className="hover:opacity-80 transition-opacity"
+              title="Expand Sidebar"
+            >
+              <Store size={24} className="text-white/70" />
+            </button>
           )}
-          
-          <button 
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="absolute -right-3 top-6 bg-[#2D2D2D] border border-white/10 rounded-full p-1 text-white/50 hover:text-white transition-colors z-20"
-          >
-            {isCollapsed ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
-          </button>
         </div>
 
         <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
