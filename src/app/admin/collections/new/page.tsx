@@ -112,7 +112,7 @@ export default function NewCollectionPage() {
 
         <div className="bg-white border border-gray-200 rounded-lg p-6">
           <h2 className="font-semibold text-[#2D2D2D] mb-4">Collection Image</h2>
-          <SingleImageUploader value={imageUrl} onChange={setImageUrl} type="banner" />
+          <SingleImageUploader value={imageUrl} onChange={setImageUrl} uploadType="banner" />
         </div>
 
         {error && (
