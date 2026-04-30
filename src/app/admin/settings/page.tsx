@@ -188,6 +188,7 @@ const SECTIONS = [
   { id: "payments",      label: "Payments",          icon: CreditCard },
   { id: "notifications", label: "Notifications",     icon: Bell },
   { id: "social",        label: "Social Media",      icon: Share2 },
+  { id: "legal",         label: "Content & Legal",   icon: Receipt },
 ] as const;
 
 type SectionId = (typeof SECTIONS)[number]["id"];
@@ -220,6 +221,35 @@ export default function SettingsPage() {
   const getBool = (key: string, fallback = false) =>
     settings[key] !== undefined ? settings[key] === "true" : fallback;
   const setBool = (key: string, value: boolean) => set(key, String(value));
+
+  const handleFileUpload = async (key: string, file: File | undefined) => {
+    if (!file) return;
+    if (!file.name.endsWith(".txt")) {
+      alert("Please upload a .txt file.");
+      return;
+    }
+
+    setSaveStates((prev) => ({ ...prev, legal: "saving" }));
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("type", "legal");
+
+    try {
+      const res = await fetch("/api/admin/upload", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      
+      // Store the URL in settings
+      set(key, data.url);
+      setSaveStates((prev) => ({ ...prev, legal: "idle" }));
+    } catch (err: any) {
+      alert("Upload failed: " + err.message);
+      setSaveStates((prev) => ({ ...prev, legal: "error" }));
+    }
+  };
 
   const save = useCallback(
     async (sectionId: SectionId, keys: string[]) => {
@@ -703,6 +733,84 @@ export default function SettingsPage() {
                   placeholder="+260 97X XXX XXX"
                   className="w-full pl-8 pr-3 py-2 text-sm text-[#2D2D2D] placeholder-gray-300 border border-gray-200 rounded-md focus:border-[#2D2D2D] focus:ring-1 focus:ring-[#2D2D2D] outline-none transition-all bg-white"
                 />
+              </div>
+            </Field>
+          </Section>
+        );
+
+      // ── Content & Legal ─────────────────────────────────────────────────────
+      case "legal":
+        return (
+          <Section
+            title="Content & Legal"
+            description="Manage your store's legal pages and content via .txt file uploads."
+            icon={Receipt}
+            onSave={() => save("legal", ["about_us", "privacy_policy", "terms_conditions"])}
+            saveState={saveStates.legal}
+          >
+            <Field
+              label="About Us"
+              hint="Upload a .txt file. The URL will be saved."
+            >
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-3">
+                  <Input value={get("about_us")} onChange={(v) => set("about_us", v)} placeholder="URL will appear here..." />
+                  <label className="flex-shrink-0 flex items-center gap-2 px-3 py-2 bg-gray-100 text-xs font-bold uppercase tracking-wider rounded-md cursor-pointer hover:bg-gray-200 transition-all">
+                    <Upload size={12} />
+                    Upload .txt
+                    <input
+                      type="file"
+                      accept=".txt"
+                      className="hidden"
+                      onChange={(e) => handleFileUpload("about_us", e.target.files?.[0])}
+                    />
+                  </label>
+                </div>
+                {get("about_us") && <p className="text-[10px] text-green-600 font-medium">File uploaded successfully.</p>}
+              </div>
+            </Field>
+
+            <Field
+              label="Privacy Policy"
+              hint="Upload your privacy policy as a .txt file."
+            >
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-3">
+                  <Input value={get("privacy_policy")} onChange={(v) => set("privacy_policy", v)} placeholder="URL will appear here..." />
+                  <label className="flex-shrink-0 flex items-center gap-2 px-3 py-2 bg-gray-100 text-xs font-bold uppercase tracking-wider rounded-md cursor-pointer hover:bg-gray-200 transition-all">
+                    <Upload size={12} />
+                    Upload .txt
+                    <input
+                      type="file"
+                      accept=".txt"
+                      className="hidden"
+                      onChange={(e) => handleFileUpload("privacy_policy", e.target.files?.[0])}
+                    />
+                  </label>
+                </div>
+                {get("privacy_policy") && <p className="text-[10px] text-green-600 font-medium">File uploaded successfully.</p>}
+              </div>
+            </Field>
+
+            <Field
+              label="Terms & Conditions"
+              hint="Upload your terms and conditions as a .txt file."
+            >
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-3">
+                  <Input value={get("terms_conditions")} onChange={(v) => set("terms_conditions", v)} placeholder="URL will appear here..." />
+                  <label className="flex-shrink-0 flex items-center gap-2 px-3 py-2 bg-gray-100 text-xs font-bold uppercase tracking-wider rounded-md cursor-pointer hover:bg-gray-200 transition-all">
+                    <Upload size={12} />
+                    Upload .txt
+                    <input
+                      type="file"
+                      accept=".txt"
+                      className="hidden"
+                      onChange={(e) => handleFileUpload("terms_conditions", e.target.files?.[0])}
+                    />
+                  </label>
+                </div>
+                {get("terms_conditions") && <p className="text-[10px] text-green-600 font-medium">File uploaded successfully.</p>}
               </div>
             </Field>
           </Section>
