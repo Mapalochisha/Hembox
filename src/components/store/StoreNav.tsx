@@ -7,6 +7,7 @@ import { useSession, signOut } from "next-auth/react";
 import { ShoppingCart, Menu, X, User, LogOut } from "lucide-react";
 import CartIcon from "@/components/store/CartIcon";
 import DarkModeToggle from "@/components/store/DarkModeToggle";
+import { isAdminRole } from "@/lib/roles";
 
 const navLinks = [
   { label: "Home", href: "/" },
@@ -48,14 +49,14 @@ export default function StoreNav() {
           {status === "authenticated" ? (
             <>
               <Link 
-                href={(session.user as any).role === "ADMIN" ? "/admin" : "/account"} 
+                href={isAdminRole((session.user as any).role) ? "/admin" : "/account"}
                 className="hover:opacity-100 transition-opacity flex items-center gap-1"
               >
                 <User size={10} />
                 My Account
               </Link>
               <span className="opacity-30">|</span>
-              <button onClick={() => signOut()} className="hover:opacity-100 transition-opacity flex items-center gap-1">
+              <button onClick={() => signOut({ callbackUrl: "/" })} className="hover:opacity-100 transition-opacity flex items-center gap-1">
                 <LogOut size={10} />
                 Logout
               </button>
@@ -127,7 +128,7 @@ export default function StoreNav() {
               </Link>
             ))}
             {status === "authenticated" && (
-              <Link href={(session.user as any).role === "ADMIN" ? "/admin" : "/account"}
+              <Link href={isAdminRole((session.user as any).role) ? "/admin" : "/account"}
                 className={`text-4xl font-black tracking-tight uppercase py-3 border-b border-gray-100 dark:border-white/10 transition-colors
                   ${pathname === "/account" || pathname === "/admin" ? "text-[#111] dark:text-white" : "text-gray-300 dark:text-gray-600 hover:text-[#111] dark:hover:text-white"}`}
                 style={{ animationDelay: `${navLinks.length * 60}ms` }}>

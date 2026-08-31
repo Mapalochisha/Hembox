@@ -3,10 +3,12 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { LayoutDashboard, Package, ShoppingCart, Users } from "lucide-react";
+import { isAdminRole } from "@/lib/roles";
 
 export default async function AdminPage() {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/admin/login");
+  if (!isAdminRole((session.user as any).role)) redirect("/account");
 
   const [productCount, orderCount, customerCount] = await Promise.all([
     db.product.count(),

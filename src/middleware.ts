@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
+import { isAdminRole } from "@/lib/roles";
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -12,13 +13,16 @@ export async function middleware(req: NextRequest) {
   // Admin Protection
   if (pathname.startsWith("/admin")) {
     if (pathname.startsWith("/admin/login")) {
-      if (token && (token.role === "SUPER_ADMIN" || token.role === "MANAGER" || token.role === "STAFF")) {
-        return NextResponse.redirect(new URL("/admin/dashboard", req.url));
+      if (token && isAdminRole(token.role)) {
+        return NextResponse.redirect(new URL("/admin", req.url));
+      }
+      if (token?.role === "CUSTOMER") {
+        return NextResponse.redirect(new URL("/account", req.url));
       }
       return NextResponse.next();
     }
 
-    if (!token || !["SUPER_ADMIN", "MANAGER", "STAFF"].includes(token.role as string)) {
+    if (!token || !isAdminRole(token.role)) {
       return NextResponse.redirect(new URL("/admin/login", req.url));
     }
   }
@@ -29,6 +33,9 @@ export async function middleware(req: NextRequest) {
     if (pathname.startsWith("/account/login") || pathname.startsWith("/account/register")) {
       if (token && token.role === "CUSTOMER") {
         return NextResponse.redirect(new URL("/account", req.url));
+      }
+      if (token && isAdminRole(token.role)) {
+        return NextResponse.redirect(new URL("/admin", req.url));
       }
       return NextResponse.next();
     }

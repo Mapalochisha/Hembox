@@ -4,7 +4,8 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import Link from "next/link";
 import { User, Package, MapPin, LogOut } from "lucide-react";
-import { signOut } from "next-auth/react";
+import SignOutButton from "@/components/store/SignOutButton";
+import { isAdminRole } from "@/lib/roles";
 
 export default async function AccountPage() {
   const session = await getServerSession(authOptions);
@@ -13,7 +14,7 @@ export default async function AccountPage() {
     redirect("/account/login");
   }
 
-  if ((session.user as any).role === "ADMIN") {
+  if (isAdminRole((session.user as any).role)) {
     redirect("/admin");
   }
 
@@ -44,13 +45,12 @@ export default async function AccountPage() {
           <p className="text-xs opacity-50 uppercase tracking-widest mt-2">Welcome back, {customer.name}</p>
         </div>
         <div className="flex gap-4">
-          <Link 
-            href="/api/auth/signout" 
+          <SignOutButton
             className="flex items-center gap-2 px-6 py-3 bg-red-50 dark:bg-red-950/20 text-red-500 text-[10px] font-bold uppercase tracking-widest border border-red-100 dark:border-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
           >
             <LogOut size={14} />
             Sign Out
-          </Link>
+          </SignOutButton>
         </div>
       </div>
 

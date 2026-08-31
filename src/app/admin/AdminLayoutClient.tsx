@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { signOut } from "next-auth/react";
 import {
   LayoutDashboard,
   Package,
@@ -109,14 +110,14 @@ export default function AdminLayoutClient({
               </span>
             </div>
           )}
-          <Link
-            href="/api/auth/signout"
+          <button
+            onClick={() => signOut({ callbackUrl: "/" })}
             title={isCollapsed ? "Sign out" : ""}
             className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm text-white/70 hover:text-white hover:bg-white/10 transition-colors w-full ${isCollapsed ? "justify-center px-0" : ""}`}
           >
             <LogOut size={16} />
             {!isCollapsed && <span>Sign out</span>}
-          </Link>
+          </button>
         </div>
       </aside>
       <div className={`flex-1 transition-all duration-300 ease-in-out ${isCollapsed ? "ml-20" : "ml-60"}`}>
