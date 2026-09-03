@@ -1,8 +1,10 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
+import { z } from "zod";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { parseProductShippingFields, productShippingPointsForCreate } from "@/lib/shipping/validation";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -26,8 +28,9 @@ export async function POST(req: Request) {
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
-    const body = await req.json();
-    const { name, slug, description, status, variants, selectedCategories, images } = body;
+    const body = parseProductShippingFields(await req.json());
+    const { name, slug, description, status, variants: suppliedVariants, selectedCategories, images, shippingPoints } = body;
+    const variants = suppliedVariants ?? [];
 
     if (!name || !slug) {
       return NextResponse.json({ error: "Name and slug are required." }, { status: 400 });
@@ -44,6 +47,7 @@ export async function POST(req: Request) {
         slug,
         description,
         status,
+        shippingPoints: productShippingPointsForCreate(shippingPoints),
         variants: {
           create: variants.map((v: any) => ({
             sku:          v.sku,
@@ -51,6 +55,7 @@ export async function POST(req: Request) {
             comparePrice: v.comparePrice ?? null,
             inventory:    v.inventory,
             attributes:   v.attributes ?? {},
+            shippingPointsOverride: v.shippingPointsOverride ?? null,
           })),
         },
         categories: {
@@ -70,6 +75,9 @@ export async function POST(req: Request) {
 
     return NextResponse.json(product, { status: 201 });
   } catch (error: any) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: error.issues[0]?.message ?? "Invalid shipping points." }, { status: 400 });
+    }
     if (error.code === "P2002") {
       return NextResponse.json({ error: "A product with this SKU or slug already exists." }, { status: 400 });
     }

@@ -1,8 +1,10 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
+import { z } from "zod";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { parseProductShippingFields } from "@/lib/shipping/validation";
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
@@ -28,16 +30,39 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
-    const body = await req.json();
-    const { name, slug, description, status, variants, selectedCategories, selectedCollections, images } = body;
+    const body = parseProductShippingFields(await req.json());
+    const { name, slug, description, status, variants: suppliedVariants, selectedCategories, selectedCollections, images, shippingPoints } = body;
+    const variants = suppliedVariants ?? [];
+
+    const incomingIds = variants.filter((v: any) => v.id).map((v: any) => v.id);
+    const historicalVariants = await db.productVariant.findMany({
+      where: {
+        productId: params.id,
+        id: { notIn: incomingIds },
+        orderItems: { some: {} },
+      },
+      select: { sku: true },
+    });
+
+    if (historicalVariants.length > 0) {
+      return NextResponse.json(
+        { error: "Variants with historical order items cannot be removed." },
+        { status: 409 },
+      );
+    }
 
     const product = await db.product.update({
       where: { id: params.id },
-      data: { name, slug, description, status },
+      data: {
+        name,
+        slug,
+        description,
+        status,
+        ...(shippingPoints !== undefined && { shippingPoints }),
+      },
     });
 
     // Sync variants — delete removed ones, update existing, create new
-    const incomingIds = variants.filter((v: any) => v.id).map((v: any) => v.id);
     await db.productVariant.deleteMany({
       where: { productId: params.id, id: { notIn: incomingIds } },
     });
@@ -52,6 +77,9 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
             comparePrice: v.comparePrice ?? null,
             inventory:    v.inventory,
             attributes:   v.attributes ?? {},
+            ...(Object.prototype.hasOwnProperty.call(v, "shippingPointsOverride") && {
+              shippingPointsOverride: v.shippingPointsOverride,
+            }),
           },
         });
       } else {
@@ -63,6 +91,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
             comparePrice: v.comparePrice ?? null,
             inventory:    v.inventory,
             attributes:   v.attributes ?? {},
+            shippingPointsOverride: v.shippingPointsOverride ?? null,
           },
         });
       }
@@ -108,6 +137,9 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
     return NextResponse.json(product);
   } catch (error: any) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: error.issues[0]?.message ?? "Invalid shipping points." }, { status: 400 });
+    }
     if (error.code === "P2002") {
       return NextResponse.json({ error: "A product with this slug or SKU already exists." }, { status: 400 });
     }
@@ -121,6 +153,22 @@ export async function DELETE(_req: Request, { params }: { params: { id: string }
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
+    const historicalOrderItemCount = await db.orderItem.count({
+      where: { productId: params.id },
+    });
+
+    if (historicalOrderItemCount > 0) {
+      const archivedProduct = await db.product.update({
+        where: { id: params.id },
+        data: { status: "ARCHIVED", featured: false },
+      });
+      return NextResponse.json({
+        archived: true,
+        product: archivedProduct,
+        message: "Products with historical order items are archived instead of deleted.",
+      });
+    }
+
     // Get all variant ids first
     const variants = await db.productVariant.findMany({
       where: { productId: params.id },
@@ -128,12 +176,11 @@ export async function DELETE(_req: Request, { params }: { params: { id: string }
     });
     const variantIds = variants.map(v => v.id);
 
-    // Delete variant-related records
-  if (variantIds.length > 0) {
-    await db.cartItem.deleteMany({ where: { variantId: { in: variantIds } } });
-    await db.stockAlert.deleteMany({ where: { variantId: { in: variantIds } } });
-    await db.orderItem.deleteMany({ where: { variantId: { in: variantIds } } });
-  }
+    // Delete variant-related records that are not historical order data.
+    if (variantIds.length > 0) {
+      await db.cartItem.deleteMany({ where: { variantId: { in: variantIds } } });
+      await db.stockAlert.deleteMany({ where: { variantId: { in: variantIds } } });
+    }
 
     // Delete product-related records
     await db.productImage.deleteMany({ where: { productId: params.id } });
