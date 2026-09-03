@@ -4,7 +4,7 @@ import { getServerSession } from "next-auth";
 import { z } from "zod";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { parseProductShippingFields } from "@/lib/shipping/validation";
+import { validateProductShippingFields } from "@/lib/shipping/validation";
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
@@ -30,9 +30,20 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
-    const body = parseProductShippingFields(await req.json());
-    const { name, slug, description, status, variants: suppliedVariants, selectedCategories, selectedCollections, images, shippingPoints } = body;
-    const variants = suppliedVariants ?? [];
+    const body = await req.json();
+    validateProductShippingFields(body);
+
+    const {
+      name,
+      slug,
+      description,
+      status,
+      variants,
+      selectedCategories,
+      selectedCollections,
+      images,
+      shippingPoints,
+    } = body;
 
     const incomingIds = variants.filter((v: any) => v.id).map((v: any) => v.id);
     const historicalVariants = await db.productVariant.findMany({
