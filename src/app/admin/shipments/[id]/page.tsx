@@ -53,6 +53,8 @@ interface Shipment {
   id: string;
   orderId: string;
   status: string;
+  allowedTransitions: string[];
+
   selectionMethod: string;
   shippingPoints: number;
   customerShippingPrice: number | string | null;
@@ -113,19 +115,6 @@ interface Shipment {
 
   events: ShipmentEvent[];
 }
-
-const SHIPMENT_STATUSES = [
-  "PENDING",
-  "READY_FOR_COURIER",
-  "COLLECTED",
-  "IN_TRANSIT",
-  "DELIVERED",
-  "FAILED_DELIVERY",
-  "RETURNED",
-  "CANCELLED",
-  "LOST",
-  "DAMAGED",
-];
 
 const STATUS_COLORS: Record<string, string> = {
   PENDING:
@@ -236,9 +225,46 @@ function getCustomerEmail(
 function getCustomerPhone(
   shipment: Shipment,
 ): string {
-  return (
-    shipment.order.customer?.phone ?? ""
-  );
+  return shipment.order.customer?.phone ?? "";
+}
+
+function getVariantLabel(
+  item: ShipmentItem,
+): string {
+  if (
+    item.variantSnapshot &&
+    typeof item.variantSnapshot === "object"
+  ) {
+    const snapshot =
+      item.variantSnapshot as Record<
+        string,
+        unknown
+      >;
+
+    const name =
+      typeof snapshot.name === "string"
+        ? snapshot.name
+        : null;
+
+    const sku =
+      typeof snapshot.sku === "string"
+        ? snapshot.sku
+        : null;
+
+    if (name && sku) {
+      return `${name} (${sku})`;
+    }
+
+    if (name) {
+      return name;
+    }
+
+    if (sku) {
+      return sku;
+    }
+  }
+
+  return item.variantId;
 }
 
 export default function ShipmentDetailPage() {
@@ -301,9 +327,12 @@ export default function ShipmentDetailPage() {
       }
 
       setShipment(data);
+
       setTrackingNumber(
         data.trackingNumber ?? "",
       );
+
+      setSelectedStatus("");
     } catch (err) {
       setError(
         err instanceof Error
@@ -328,6 +357,17 @@ export default function ShipmentDetailPage() {
 
   async function updateShipmentStatus() {
     if (!shipment || !selectedStatus) {
+      return;
+    }
+
+    if (
+      !shipment.allowedTransitions.includes(
+        selectedStatus,
+      )
+    ) {
+      setUpdateError(
+        "That shipment status transition is not allowed.",
+      );
       return;
     }
 
@@ -361,9 +401,11 @@ export default function ShipmentDetailPage() {
       }
 
       setShipment(data);
+
       setTrackingNumber(
         data.trackingNumber ?? "",
       );
+
       setSelectedStatus("");
       setNote("");
     } catch (err) {
@@ -410,6 +452,7 @@ export default function ShipmentDetailPage() {
       }
 
       setShipment(data);
+
       setTrackingNumber(
         data.trackingNumber ?? "",
       );
@@ -469,6 +512,9 @@ export default function ShipmentDetailPage() {
     shipment.courier?.name ??
     "Not assigned";
 
+  const hasAllowedTransitions =
+    shipment.allowedTransitions.length > 0;
+
   return (
     <div className="max-w-7xl">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
@@ -489,7 +535,8 @@ export default function ShipmentDetailPage() {
               className={`inline-flex text-xs font-medium px-2.5 py-1 rounded-full border ${
                 STATUS_COLORS[
                   shipment.status
-                ] ?? "bg-gray-50 text-gray-600 border-gray-200"
+                ] ??
+                "bg-gray-50 text-gray-600 border-gray-200"
               }`}
             >
               {formatStatus(
@@ -513,7 +560,9 @@ export default function ShipmentDetailPage() {
 
           <button
             type="button"
-            onClick={() => router.push("/admin/shipments")}
+            onClick={() =>
+              router.push("/admin/shipments")
+            }
             className="rounded-lg bg-[#2D2D2D] px-4 py-2.5 text-sm font-medium text-white hover:opacity-90"
           >
             All Shipments
@@ -526,6 +575,7 @@ export default function ShipmentDetailPage() {
           <p className="font-semibold text-orange-800">
             Custom delivery requires contact
           </p>
+
           <p className="text-sm text-orange-700 mt-1">
             This shipment did not resolve to a
             standard courier option. Contact the
@@ -548,13 +598,14 @@ export default function ShipmentDetailPage() {
               <h2 className="font-semibold text-[#2D2D2D]">
                 Shipment Status
               </h2>
+
               <p className="text-xs text-gray-400 mt-1">
-                Update the fulfillment progress
-                and optionally record a note.
+                Only valid next statuses are
+                available for this shipment.
               </p>
             </div>
 
-            <div className="p-5">
+            <div className="p-5 space-y-4">
               <div className="flex flex-col md:flex-row gap-3">
                 <select
                   value={selectedStatus}
@@ -563,22 +614,23 @@ export default function ShipmentDetailPage() {
                       event.target.value,
                     )
                   }
-                  disabled={updating}
-                  className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#2D2D2D]"
+                  disabled={
+                    updating ||
+                    !hasAllowedTransitions
+                  }
+                  className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#2D2D2D] disabled:bg-gray-50 disabled:text-gray-400"
                 >
                   <option value="">
-                    Select new status...
+                    {hasAllowedTransitions
+                      ? "Select new status..."
+                      : "No further transitions available"}
                   </option>
 
-                  {SHIPMENT_STATUSES.map(
+                  {shipment.allowedTransitions.map(
                     (status) => (
                       <option
                         key={status}
                         value={status}
-                        disabled={
-                          status ===
-                          shipment.status
-                        }
                       >
                         {formatStatus(status)}
                       </option>
@@ -593,7 +645,8 @@ export default function ShipmentDetailPage() {
                   }
                   disabled={
                     updating ||
-                    !selectedStatus
+                    !selectedStatus ||
+                    !hasAllowedTransitions
                   }
                   className="rounded-lg bg-[#2D2D2D] px-5 py-2.5 text-sm font-medium text-white disabled:opacity-40"
                 >
@@ -603,26 +656,38 @@ export default function ShipmentDetailPage() {
                 </button>
               </div>
 
-              <div className="mt-4">
-                <label
-                  htmlFor="shipment-note"
-                  className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2"
-                >
-                  Status Note
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1.5">
+                  Shipment note
                 </label>
 
                 <textarea
-                  id="shipment-note"
                   value={note}
                   onChange={(event) =>
                     setNote(event.target.value)
                   }
                   rows={3}
                   placeholder="Optional note about this status change..."
-                  disabled={updating}
-                  className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm outline-none resize-y focus:border-[#2D2D2D]"
+                  disabled={
+                    updating ||
+                    !hasAllowedTransitions
+                  }
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-[#2D2D2D] disabled:bg-gray-50"
                 />
               </div>
+
+              {!hasAllowedTransitions && (
+                <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600">
+                  <strong>
+                    {formatStatus(
+                      shipment.status,
+                    )}
+                  </strong>{" "}
+                  is a terminal shipment status.
+                  No further status transitions
+                  are currently permitted.
+                </div>
+              )}
             </div>
           </section>
 
@@ -631,6 +696,12 @@ export default function ShipmentDetailPage() {
               <h2 className="font-semibold text-[#2D2D2D]">
                 Tracking
               </h2>
+
+              <p className="text-xs text-gray-400 mt-1">
+                The tracking number is stored on
+                the shipment and captured in status
+                history when a status changes.
+              </p>
             </div>
 
             <div className="p-5">
@@ -645,14 +716,14 @@ export default function ShipmentDetailPage() {
                   }
                   placeholder="Enter tracking number"
                   disabled={trackingSaving}
-                  className="flex-1 rounded-lg border border-gray-200 px-3 py-2.5 text-sm font-mono outline-none focus:border-[#2D2D2D]"
+                  className="flex-1 rounded-lg border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-[#2D2D2D] disabled:bg-gray-50"
                 />
 
                 <button
                   type="button"
                   onClick={saveTrackingNumber}
                   disabled={trackingSaving}
-                  className="rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40"
+                  className="rounded-lg border border-gray-200 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40"
                 >
                   {trackingSaving
                     ? "Saving..."
@@ -660,107 +731,14 @@ export default function ShipmentDetailPage() {
                 </button>
               </div>
 
-              <p className="text-xs text-gray-400 mt-2">
-                Leave empty to remove the tracking
-                number.
-              </p>
-            </div>
-          </section>
-
-          <section className="bg-white rounded-xl border border-gray-200">
-            <div className="px-5 py-4 border-b border-gray-100">
-              <h2 className="font-semibold text-[#2D2D2D]">
-                Delivery Information
-              </h2>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5 p-5">
-              <div>
-                <p className="text-xs text-gray-400 uppercase tracking-wider">
-                  Destination
+              {shipment.trackingNumber && (
+                <p className="text-xs text-gray-400 mt-2">
+                  Current tracking number:{" "}
+                  <span className="font-mono text-gray-600">
+                    {shipment.trackingNumber}
+                  </span>
                 </p>
-                <p className="text-sm font-medium text-gray-700 mt-1">
-                  {shipment.destinationTown}
-                </p>
-                <p className="text-sm text-gray-500">
-                  {shipment.destinationProvince}
-                </p>
-                <p className="text-xs text-gray-400 mt-1">
-                  {shipment.destinationCountryCode}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-xs text-gray-400 uppercase tracking-wider">
-                  Delivery Zone
-                </p>
-                <p className="text-sm font-medium text-gray-700 mt-1">
-                  {zoneName}
-                </p>
-                {shipment.zoneCodeSnapshot && (
-                  <p className="text-xs text-gray-400">
-                    {shipment.zoneCodeSnapshot}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <p className="text-xs text-gray-400 uppercase tracking-wider">
-                  Courier
-                </p>
-                <p className="text-sm font-medium text-gray-700 mt-1">
-                  {courierName}
-                </p>
-                <p className="text-xs text-gray-400">
-                  {shipment.courierCodeSnapshot ??
-                    shipment.courier?.code ??
-                    "—"}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-xs text-gray-400 uppercase tracking-wider">
-                  Package Tier
-                </p>
-                <p className="text-sm font-medium text-gray-700 mt-1">
-                  {tierName}
-                </p>
-                <p className="text-xs text-gray-400">
-                  {shipment.shippingPoints}{" "}
-                  point
-                  {shipment.shippingPoints !==
-                  1
-                    ? "s"
-                    : ""}
-                </p>
-
-                {shipment.tierIsCustomSnapshot && (
-                  <p className="text-xs text-orange-600 mt-1">
-                    Custom tier
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <p className="text-xs text-gray-400 uppercase tracking-wider">
-                  Selection Method
-                </p>
-                <p className="text-sm font-medium text-gray-700 mt-1">
-                  {formatStatus(
-                    shipment.selectionMethod,
-                  )}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-xs text-gray-400 uppercase tracking-wider">
-                  Rate
-                </p>
-                <p className="text-sm font-medium text-gray-700 mt-1 font-mono">
-                  {shipment.rateIdSnapshot ??
-                    "—"}
-                </p>
-              </div>
+              )}
             </div>
           </section>
 
@@ -771,47 +749,55 @@ export default function ShipmentDetailPage() {
               </h2>
             </div>
 
-            {shipment.events.length === 0 ? (
-              <div className="p-8 text-center text-sm text-gray-400">
-                No shipment events recorded.
-              </div>
-            ) : (
-              <div className="divide-y divide-gray-100">
-                {shipment.events.map(
-                  (event) => (
-                    <div
-                      key={event.id}
-                      className="p-5"
-                    >
-                      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-2">
+            <div className="p-5">
+              {shipment.events.length === 0 ? (
+                <p className="text-sm text-gray-400">
+                  No shipment events recorded yet.
+                </p>
+              ) : (
+                <div className="space-y-5">
+                  {shipment.events.map(
+                    (event, index) => (
+                      <div
+                        key={event.id}
+                        className="relative pl-6"
+                      >
+                        {index <
+                          shipment.events.length -
+                            1 && (
+                          <div className="absolute left-[7px] top-3 bottom-[-20px] w-px bg-gray-200" />
+                        )}
+
+                        <div className="absolute left-0 top-1.5 h-3.5 w-3.5 rounded-full border-2 border-white bg-[#2D2D2D] shadow-sm" />
+
                         <div>
                           <div className="flex flex-wrap items-center gap-2">
                             {event.fromStatus && (
                               <>
-                                <span className="text-xs text-gray-500">
+                                <span className="text-sm font-medium text-gray-600">
                                   {formatStatus(
                                     event.fromStatus,
                                   )}
                                 </span>
+
                                 <span className="text-gray-300">
                                   →
                                 </span>
                               </>
                             )}
 
-                            <span
-                              className={`inline-flex text-xs font-medium px-2.5 py-1 rounded-full border ${
-                                STATUS_COLORS[
-                                  event.toStatus
-                                ] ??
-                                "bg-gray-50 text-gray-600 border-gray-200"
-                              }`}
-                            >
+                            <span className="text-sm font-semibold text-[#2D2D2D]">
                               {formatStatus(
                                 event.toStatus,
                               )}
                             </span>
                           </div>
+
+                          <p className="text-xs text-gray-400 mt-1">
+                            {formatDateTime(
+                              event.createdAt,
+                            )}
+                          </p>
 
                           {event.note && (
                             <p className="text-sm text-gray-600 mt-2">
@@ -820,26 +806,67 @@ export default function ShipmentDetailPage() {
                           )}
 
                           {event.trackingNumber && (
-                            <p className="text-xs text-gray-400 font-mono mt-2">
+                            <p className="text-xs text-gray-400 mt-2">
                               Tracking:{" "}
-                              {
-                                event.trackingNumber
-                              }
+                              <span className="font-mono text-gray-600">
+                                {
+                                  event.trackingNumber
+                                }
+                              </span>
                             </p>
                           )}
                         </div>
-
-                        <p className="text-xs text-gray-400 whitespace-nowrap">
-                          {formatDateTime(
-                            event.createdAt,
-                          )}
-                        </p>
                       </div>
+                    ),
+                  )}
+                </div>
+              )}
+            </div>
+          </section>
+
+          <section className="bg-white rounded-xl border border-gray-200">
+            <div className="px-5 py-4 border-b border-gray-100">
+              <h2 className="font-semibold text-[#2D2D2D]">
+                Items
+              </h2>
+            </div>
+
+            <div className="divide-y divide-gray-100">
+              {shipment.order.items.map(
+                (item) => (
+                  <div
+                    key={item.id}
+                    className="px-5 py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-2"
+                  >
+                    <div>
+                      <p className="text-sm font-medium text-[#2D2D2D]">
+                        {item.product.name}
+                      </p>
+
+                      <p className="text-xs text-gray-400 mt-1">
+                        {getVariantLabel(item)}
+                      </p>
                     </div>
-                  ),
-                )}
-              </div>
-            )}
+
+                    <div className="flex items-center gap-5 text-sm">
+                      <span className="text-gray-500">
+                        Qty: {item.quantity}
+                      </span>
+
+                      <span className="font-medium text-[#2D2D2D]">
+                        {formatMoney(
+                          Number(
+                            item.priceAtPurchase,
+                          ) *
+                            item.quantity,
+                          currency,
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                ),
+              )}
+            </div>
           </section>
         </div>
 
@@ -854,9 +881,44 @@ export default function ShipmentDetailPage() {
             <div className="p-5 space-y-4">
               <div className="flex justify-between gap-4">
                 <span className="text-sm text-gray-500">
+                  Status
+                </span>
+
+                <span className="text-sm font-medium text-right">
+                  {formatStatus(
+                    shipment.status,
+                  )}
+                </span>
+              </div>
+
+              <div className="flex justify-between gap-4">
+                <span className="text-sm text-gray-500">
+                  Shipping points
+                </span>
+
+                <span className="text-sm font-medium">
+                  {shipment.shippingPoints}
+                </span>
+              </div>
+
+              <div className="flex justify-between gap-4">
+                <span className="text-sm text-gray-500">
+                  Selection method
+                </span>
+
+                <span className="text-sm font-medium text-right">
+                  {formatStatus(
+                    shipment.selectionMethod,
+                  )}
+                </span>
+              </div>
+
+              <div className="flex justify-between gap-4">
+                <span className="text-sm text-gray-500">
                   Customer price
                 </span>
-                <span className="text-sm font-semibold text-gray-700">
+
+                <span className="text-sm font-medium">
                   {formatMoney(
                     shipment.customerShippingPrice,
                     currency,
@@ -868,47 +930,98 @@ export default function ShipmentDetailPage() {
                 <span className="text-sm text-gray-500">
                   Courier cost
                 </span>
-                <span className="text-sm font-semibold text-gray-700">
+
+                <span className="text-sm font-medium">
                   {formatMoney(
                     shipment.courierCost,
                     currency,
                   )}
                 </span>
               </div>
+            </div>
+          </section>
 
-              <div className="flex justify-between gap-4">
-                <span className="text-sm text-gray-500">
-                  Shipping points
-                </span>
-                <span className="text-sm font-semibold text-gray-700">
-                  {shipment.shippingPoints}
-                </span>
+          <section className="bg-white rounded-xl border border-gray-200">
+            <div className="px-5 py-4 border-b border-gray-100">
+              <h2 className="font-semibold text-[#2D2D2D]">
+                Delivery
+              </h2>
+            </div>
+
+            <div className="p-5 space-y-4">
+              <div>
+                <p className="text-xs text-gray-400">
+                  Destination
+                </p>
+
+                <p className="text-sm font-medium text-[#2D2D2D] mt-1">
+                  {shipment.destinationTown}
+                </p>
+
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {shipment.destinationProvince},{" "}
+                  {
+                    shipment.destinationCountryCode
+                  }
+                </p>
               </div>
 
-              <div className="flex justify-between gap-4">
-                <span className="text-sm text-gray-500">
-                  Pricing strategy
-                </span>
-                <span className="text-sm font-medium text-gray-700 text-right">
-                  {shipment.pricingStrategySnapshot
-                    ? formatStatus(
-                        shipment.pricingStrategySnapshot,
-                      )
-                    : "—"}
-                </span>
+              <div>
+                <p className="text-xs text-gray-400">
+                  Courier
+                </p>
+
+                <p className="text-sm font-medium text-[#2D2D2D] mt-1">
+                  {courierName}
+                </p>
+
+                {shipment.courierCodeSnapshot && (
+                  <p className="text-xs text-gray-400 mt-0.5 font-mono">
+                    {
+                      shipment.courierCodeSnapshot
+                    }
+                  </p>
+                )}
               </div>
 
-              <div className="flex justify-between gap-4">
-                <span className="text-sm text-gray-500">
-                  Pricing value
-                </span>
-                <span className="text-sm font-semibold text-gray-700">
-                  {formatMoney(
-                    shipment.pricingValueSnapshot,
-                    currency,
-                  )}
-                </span>
+              <div>
+                <p className="text-xs text-gray-400">
+                  Delivery zone
+                </p>
+
+                <p className="text-sm font-medium text-[#2D2D2D] mt-1">
+                  {zoneName}
+                </p>
+
+                {shipment.zoneCodeSnapshot && (
+                  <p className="text-xs text-gray-400 mt-0.5 font-mono">
+                    {shipment.zoneCodeSnapshot}
+                  </p>
+                )}
               </div>
+
+              <div>
+                <p className="text-xs text-gray-400">
+                  Package tier
+                </p>
+
+                <p className="text-sm font-medium text-[#2D2D2D] mt-1">
+                  {tierName}
+                </p>
+
+                {shipment.tierCodeSnapshot && (
+                  <p className="text-xs text-gray-400 mt-0.5 font-mono">
+                    {shipment.tierCodeSnapshot}
+                  </p>
+                )}
+              </div>
+
+              {shipment.tierIsCustomSnapshot && (
+                <div className="rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-xs text-orange-700">
+                  This shipment uses a custom
+                  package tier.
+                </div>
+              )}
             </div>
           </section>
 
@@ -919,37 +1032,50 @@ export default function ShipmentDetailPage() {
               </h2>
             </div>
 
-            <div className="p-5">
-              <p className="text-sm font-semibold text-gray-700">
-                {getCustomerName(shipment)}
-              </p>
+            <div className="p-5 space-y-3">
+              <div>
+                <p className="text-xs text-gray-400">
+                  Name
+                </p>
+
+                <p className="text-sm font-medium text-[#2D2D2D] mt-1">
+                  {getCustomerName(
+                    shipment,
+                  )}
+                </p>
+              </div>
 
               {getCustomerEmail(
                 shipment,
               ) && (
-                <p className="text-sm text-gray-500 mt-1 break-all">
-                  {getCustomerEmail(
-                    shipment,
-                  )}
-                </p>
+                <div>
+                  <p className="text-xs text-gray-400">
+                    Email
+                  </p>
+
+                  <p className="text-sm text-gray-700 mt-1 break-all">
+                    {getCustomerEmail(
+                      shipment,
+                    )}
+                  </p>
+                </div>
               )}
 
               {getCustomerPhone(
                 shipment,
               ) && (
-                <p className="text-sm text-gray-500 mt-1">
-                  {getCustomerPhone(
-                    shipment,
-                  )}
-                </p>
-              )}
+                <div>
+                  <p className="text-xs text-gray-400">
+                    Phone
+                  </p>
 
-              <Link
-                href={`/admin/orders/${shipment.order.id}`}
-                className="inline-block mt-4 text-xs font-medium text-[#2D2D2D] hover:underline"
-              >
-                View customer/order →
-              </Link>
+                  <p className="text-sm text-gray-700 mt-1">
+                    {getCustomerPhone(
+                      shipment,
+                    )}
+                  </p>
+                </div>
+              )}
             </div>
           </section>
 
@@ -960,48 +1086,76 @@ export default function ShipmentDetailPage() {
               </h2>
             </div>
 
-            <div className="p-5 space-y-3">
-              <div>
-                <p className="text-xs text-gray-400 uppercase tracking-wider">
-                  Order Number
-                </p>
+            <div className="p-5 space-y-4">
+              <div className="flex justify-between gap-4">
+                <span className="text-sm text-gray-500">
+                  Order
+                </span>
 
                 <Link
                   href={`/admin/orders/${shipment.order.id}`}
-                  className="text-sm font-bold font-mono text-[#2D2D2D] hover:underline mt-1 inline-block"
+                  className="text-sm font-medium text-[#2D2D2D] hover:underline"
                 >
                   {shipment.order.orderNumber}
                 </Link>
               </div>
 
-              <div className="flex justify-between">
+              <div className="flex justify-between gap-4">
                 <span className="text-sm text-gray-500">
                   Order status
                 </span>
-                <span className="text-sm font-medium text-gray-700">
+
+                <span className="text-sm font-medium text-right">
                   {formatStatus(
                     shipment.order.status,
                   )}
                 </span>
               </div>
 
-              <div className="flex justify-between">
+              <div className="flex justify-between gap-4">
                 <span className="text-sm text-gray-500">
-                  Payment
+                  Payment status
                 </span>
-                <span className="text-sm font-medium text-gray-700">
+
+                <span className="text-sm font-medium text-right">
                   {formatStatus(
-                    shipment.order
-                      .paymentStatus,
+                    shipment.order.paymentStatus,
                   )}
                 </span>
               </div>
 
-              <div className="flex justify-between">
+              <div className="flex justify-between gap-4">
                 <span className="text-sm text-gray-500">
-                  Order total
+                  Subtotal
                 </span>
-                <span className="text-sm font-semibold text-gray-700">
+
+                <span className="text-sm font-medium">
+                  {formatMoney(
+                    shipment.order.subtotal,
+                    currency,
+                  )}
+                </span>
+              </div>
+
+              <div className="flex justify-between gap-4">
+                <span className="text-sm text-gray-500">
+                  Shipping
+                </span>
+
+                <span className="text-sm font-medium">
+                  {formatMoney(
+                    shipment.order.shippingCost,
+                    currency,
+                  )}
+                </span>
+              </div>
+
+              <div className="pt-3 border-t border-gray-100 flex justify-between gap-4">
+                <span className="text-sm font-semibold text-[#2D2D2D]">
+                  Total
+                </span>
+
+                <span className="text-sm font-bold text-[#2D2D2D]">
                   {formatMoney(
                     shipment.order.total,
                     currency,
@@ -1023,7 +1177,8 @@ export default function ShipmentDetailPage() {
                 <span className="text-sm text-gray-500">
                   Created
                 </span>
-                <span className="text-xs text-gray-600 text-right">
+
+                <span className="text-sm text-right">
                   {formatDateTime(
                     shipment.createdAt,
                   )}
@@ -1032,9 +1187,22 @@ export default function ShipmentDetailPage() {
 
               <div className="flex justify-between gap-4">
                 <span className="text-sm text-gray-500">
-                  Last status change
+                  Last updated
                 </span>
-                <span className="text-xs text-gray-600 text-right">
+
+                <span className="text-sm text-right">
+                  {formatDateTime(
+                    shipment.updatedAt,
+                  )}
+                </span>
+              </div>
+
+              <div className="flex justify-between gap-4">
+                <span className="text-sm text-gray-500">
+                  Status changed
+                </span>
+
+                <span className="text-sm text-right">
                   {formatDateTime(
                     shipment.statusChangedAt,
                   )}
@@ -1045,8 +1213,9 @@ export default function ShipmentDetailPage() {
                 <span className="text-sm text-gray-500">
                   Collected
                 </span>
-                <span className="text-xs text-gray-600 text-right">
-                  {formatDateTime(
+
+                <span className="text-sm text-right">
+                  {formatDate(
                     shipment.collectedAt,
                   )}
                 </span>
@@ -1056,8 +1225,9 @@ export default function ShipmentDetailPage() {
                 <span className="text-sm text-gray-500">
                   Delivered
                 </span>
-                <span className="text-xs text-gray-600 text-right">
-                  {formatDateTime(
+
+                <span className="text-sm text-right">
+                  {formatDate(
                     shipment.deliveredAt,
                   )}
                 </span>
@@ -1067,127 +1237,49 @@ export default function ShipmentDetailPage() {
                 <span className="text-sm text-gray-500">
                   Cancelled
                 </span>
-                <span className="text-xs text-gray-600 text-right">
-                  {formatDateTime(
+
+                <span className="text-sm text-right">
+                  {formatDate(
                     shipment.cancelledAt,
                   )}
                 </span>
               </div>
             </div>
           </section>
-        </div>
-      </div>
 
-      <section className="bg-white rounded-xl border border-gray-200 mt-6">
-        <div className="px-5 py-4 border-b border-gray-100">
-          <h2 className="font-semibold text-[#2D2D2D]">
-            Items in Shipment
-          </h2>
-        </div>
+          {shipment.order.shippingAddress && (
+            <section className="bg-white rounded-xl border border-gray-200">
+              <div className="px-5 py-4 border-b border-gray-100">
+                <h2 className="font-semibold text-[#2D2D2D]">
+                  Shipping Address
+                </h2>
+              </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-gray-100">
-                <th className="text-left text-xs font-medium text-gray-400 uppercase tracking-wider px-5 py-3">
-                  Product
-                </th>
-                <th className="text-left text-xs font-medium text-gray-400 uppercase tracking-wider px-5 py-3">
-                  Variant
-                </th>
-                <th className="text-right text-xs font-medium text-gray-400 uppercase tracking-wider px-5 py-3">
-                  Qty
-                </th>
-                <th className="text-right text-xs font-medium text-gray-400 uppercase tracking-wider px-5 py-3">
-                  Unit Price
-                </th>
-                <th className="text-right text-xs font-medium text-gray-400 uppercase tracking-wider px-5 py-3">
-                  Total
-                </th>
-              </tr>
-            </thead>
+              <div className="p-5">
+                <p className="text-sm text-gray-600 whitespace-pre-wrap">
+                  {shipment.order.shippingAddress}
+                </p>
+              </div>
+            </section>
+          )}
 
-            <tbody className="divide-y divide-gray-50">
-              {shipment.order.items.map(
-                (item) => {
-                  const unitPrice =
-                    Number(
-                      item.priceAtPurchase,
-                    ) || 0;
+          {shipment.order.notes && (
+            <section className="bg-white rounded-xl border border-gray-200">
+              <div className="px-5 py-4 border-b border-gray-100">
+                <h2 className="font-semibold text-[#2D2D2D]">
+                  Order Notes
+                </h2>
+              </div>
 
-                  const lineTotal =
-                    unitPrice *
-                    item.quantity;
-
-                  return (
-                    <tr key={item.id}>
-                      <td className="px-5 py-4">
-                        <p className="text-sm font-medium text-gray-700">
-                          {item.product.name}
-                        </p>
-                      </td>
-
-                      <td className="px-5 py-4">
-                        <p className="text-xs font-mono text-gray-500">
-                          {item.variantId}
-                        </p>
-                      </td>
-
-                      <td className="px-5 py-4 text-right text-sm text-gray-700">
-                        {item.quantity}
-                      </td>
-
-                      <td className="px-5 py-4 text-right text-sm text-gray-700">
-                        {formatMoney(
-                          unitPrice,
-                          currency,
-                        )}
-                      </td>
-
-                      <td className="px-5 py-4 text-right text-sm font-semibold text-gray-700">
-                        {formatMoney(
-                          lineTotal,
-                          currency,
-                        )}
-                      </td>
-                    </tr>
-                  );
-                },
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <section className="bg-white rounded-xl border border-gray-200 mt-6 mb-8">
-        <div className="px-5 py-4 border-b border-gray-100">
-          <h2 className="font-semibold text-[#2D2D2D]">
-            Shipping Address
-          </h2>
-        </div>
-
-        <div className="p-5">
-          {shipment.order.shippingAddress ? (
-            <p className="text-sm text-gray-600 whitespace-pre-line">
-              {shipment.order.shippingAddress}
-            </p>
-          ) : (
-            <div>
-              <p className="text-sm text-gray-500">
-                {shipment.destinationTown}
-              </p>
-              <p className="text-sm text-gray-500">
-                {shipment.destinationProvince}
-              </p>
-              <p className="text-sm text-gray-500">
-                {
-                  shipment.destinationCountryCode
-                }
-              </p>
-            </div>
+              <div className="p-5">
+                <p className="text-sm text-gray-600 whitespace-pre-wrap">
+                  {shipment.order.notes}
+                </p>
+              </div>
+            </section>
           )}
         </div>
-      </section>
+      </div>
     </div>
   );
 }

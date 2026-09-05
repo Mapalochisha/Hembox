@@ -5,7 +5,10 @@ import { ShipmentStatus } from "@prisma/client";
 
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { updateShipmentStatus } from "@/lib/shipments/service";
+import {
+  getAllowedShipmentTransitions,
+  updateShipmentStatus,
+} from "@/lib/shipments/service";
 
 export const dynamic = "force-dynamic";
 
@@ -105,7 +108,11 @@ export async function GET(
     );
   }
 
-  return NextResponse.json(shipment);
+  return NextResponse.json({
+    ...shipment,
+    allowedTransitions:
+      getAllowedShipmentTransitions(shipment.status),
+  });
 }
 
 export async function PATCH(
@@ -263,7 +270,11 @@ export async function PATCH(
       );
     }
 
-    return NextResponse.json(shipment);
+    return NextResponse.json({
+      ...shipment,
+      allowedTransitions:
+        getAllowedShipmentTransitions(shipment.status),
+    });
   } catch (error) {
     const message =
       error instanceof Error
