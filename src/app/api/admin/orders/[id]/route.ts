@@ -21,22 +21,57 @@ const patchOrderSchema = z.object({
   shipmentNote: z.string().nullable().optional(),
 });
 
-export async function GET(
-  _: Request,
-  { params }: { params: { id: string } },
-) {
-  const session = await getServerSession(authOptions);
-
-  if (!session) {
-    return NextResponse.json(
-      { error: "Unauthorized" },
-      { status: 401 },
-    );
+function validateOrderShipmentConsistency(
+  orderStatus: OrderStatus,
+  shipmentStatus: ShipmentStatus | null,
+): string | null {
+  if (!shipmentStatus) {
+    return null;
   }
 
-  const order = await db.order.findUnique({
+  if (
+    orderStatus === OrderStatus.DELIVERED &&
+    shipmentStatus !== ShipmentStatus.DELIVERED
+  ) {
+    return "An order cannot be marked as delivered until its shipment is marked as delivered.";
+  }
+
+  if (
+    orderStatus === OrderStatus.SHIPPED &&
+    ![
+      ShipmentStatus.COLLECTED,
+      ShipmentStatus.IN_TRANSIT,
+      ShipmentStatus.DELIVERED,
+    ].includes(shipmentStatus)
+  ) {
+    return "An order cannot be marked as shipped while its shipment is still pending, ready for courier, cancelled, returned, lost, damaged, or failed delivery.";
+  }
+
+  if (
+    orderStatus === OrderStatus.PENDING &&
+    [
+      ShipmentStatus.COLLECTED,
+      ShipmentStatus.IN_TRANSIT,
+      ShipmentStatus.DELIVERED,
+    ].includes(shipmentStatus)
+  ) {
+    return "An order cannot remain pending while its shipment has already been collected, is in transit, or has been delivered.";
+  }
+
+  if (
+    orderStatus === OrderStatus.CANCELLED &&
+    shipmentStatus === ShipmentStatus.DELIVERED
+  ) {
+    return "A delivered shipment cannot belong to a cancelled order.";
+  }
+
+  return null;
+}
+
+async function getOrder(id: string) {
+  return db.order.findUnique({
     where: {
-      id: params.id,
+      id,
     },
     include: {
       customer: true,
@@ -56,6 +91,22 @@ export async function GET(
       },
     },
   });
+}
+
+export async function GET(
+  _: Request,
+  { params }: { params: { id: string } },
+) {
+  const session = await getServerSession(authOptions);
+
+  if (!session) {
+    return NextResponse.json(
+      { error: "Unauthorized" },
+      { status: 401 },
+    );
+  }
+
+  const order = await getOrder(params.id);
 
   if (!order) {
     return NextResponse.json(
@@ -118,9 +169,12 @@ export async function PATCH(
       },
       select: {
         id: true,
+        status: true,
+        paymentStatus: true,
         shipment: {
           select: {
             id: true,
+            status: true,
             trackingNumber: true,
           },
         },
@@ -134,14 +188,31 @@ export async function PATCH(
       );
     }
 
-    /*
-     * Shipment updates go through the shipment service so that:
-     *
-     * 1. Status transitions are validated.
-     * 2. Shipment timestamps are maintained.
-     * 3. ShipmentEvent history is created.
-     * 4. Tracking changes are recorded against the shipment.
-     */
+    const effectiveOrderStatus =
+      status ?? existingOrder.status;
+    const effectiveShipmentStatus =
+      shipmentStatus ?? existingOrder.shipment?.status ?? null;
+
+    if (status !== undefined || shipmentStatus !== undefined) {
+      const consistencyError =
+        validateOrderShipmentConsistency(
+          effectiveOrderStatus,
+          effectiveShipmentStatus,
+        );
+
+      if (consistencyError) {
+        return NextResponse.json(
+          {
+            error: consistencyError,
+            code: "ORDER_SHIPMENT_STATUS_CONFLICT",
+            orderStatus: effectiveOrderStatus,
+            shipmentStatus: effectiveShipmentStatus,
+          },
+          { status: 409 },
+        );
+      }
+    }
+
     if (shipmentStatus !== undefined) {
       if (!existingOrder.shipment) {
         return NextResponse.json(
@@ -168,12 +239,6 @@ export async function PATCH(
         { status: 400 },
       );
     } else if (trackingNumber !== undefined) {
-      /*
-       * Preserve the existing admin behaviour where the order-level
-       * tracking number can be edited without changing shipment status.
-       *
-       * If a shipment exists, keep its tracking number synchronized.
-       */
       if (existingOrder.shipment) {
         await db.shipment.update({
           where: {
@@ -186,12 +251,6 @@ export async function PATCH(
       }
     }
 
-    /*
-     * Keep the existing order-level fields working.
-     *
-     * Shipping lifecycle is intentionally separate from commercial
-     * order status and payment status.
-     */
     const order = await db.order.update({
       where: {
         id: params.id,
