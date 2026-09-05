@@ -2,6 +2,7 @@ import { VariantGroup } from "@/components/admin/VariantBuilder";
 
 export function flattenVariantGroups(groups: VariantGroup[], productSlug: string) {
   const variants: {
+    id?: string;
     sku: string;
     price: number;
     comparePrice: number | null;
@@ -40,6 +41,7 @@ export function flattenVariantGroups(groups: VariantGroup[], productSlug: string
       };
 
       variants.push({
+        ...(sub.id ? { id: sub.id } : {}),
         sku,
         price,
         comparePrice,
@@ -92,6 +94,7 @@ export function groupVariantsForBuilder(variants: any[]): VariantGroup[] {
     const subValue = subKey ? attributes[subKey] : "";
 
     groupMap[groupKey].subAttributes.push({
+      ...(v.id ? { id: v.id } : {}),
       attributeKey: subKey ?? masterKey,
       value: subValue,
       stock: v.inventory ?? 0,
