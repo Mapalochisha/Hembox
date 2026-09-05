@@ -1,6 +1,9 @@
 import "server-only";
 
-import { ShipmentStatus } from "@prisma/client";
+import {
+  OrderStatus,
+  ShipmentStatus,
+} from "@prisma/client";
 
 import { db } from "@/lib/db";
 
@@ -9,6 +12,7 @@ export interface UpdateShipmentStatusInput {
   status: ShipmentStatus;
   note?: string | null;
   trackingNumber?: string | null;
+  orderStatusOverride?: OrderStatus;
 }
 
 const ALLOWED_SHIPMENT_TRANSITIONS: Record<
@@ -72,6 +76,31 @@ function normalizeOptionalText(
   return normalized || null;
 }
 
+function validateOrderShipmentTransition(
+  orderStatus: OrderStatus,
+  shipmentStatus: ShipmentStatus,
+): string | null {
+  const shipmentHasPhysicalProgress = [
+    ShipmentStatus.COLLECTED,
+    ShipmentStatus.IN_TRANSIT,
+    ShipmentStatus.DELIVERED,
+  ].includes(shipmentStatus);
+
+  if (
+    shipmentHasPhysicalProgress &&
+    [
+      OrderStatus.PENDING,
+      OrderStatus.CANCELLED,
+      OrderStatus.REFUNDED,
+      OrderStatus.ARCHIVED,
+    ].includes(orderStatus)
+  ) {
+    return `A shipment cannot be ${shipmentStatus.toLowerCase().replaceAll("_", " ")} while the order is ${orderStatus.toLowerCase().replaceAll("_", " ")}.`;
+  }
+
+  return null;
+}
+
 export function isValidShipmentTransition(
   fromStatus: ShipmentStatus,
   toStatus: ShipmentStatus,
@@ -108,6 +137,13 @@ export async function updateShipmentStatus(
       where: {
         id: shipmentId,
       },
+      include: {
+        order: {
+          select: {
+            status: true,
+          },
+        },
+      },
     });
 
     if (!shipment) {
@@ -125,6 +161,18 @@ export async function updateShipmentStatus(
       throw new Error(
         `Invalid shipment status transition: ${fromStatus} → ${toStatus}`,
       );
+    }
+
+    const effectiveOrderStatus =
+      input.orderStatusOverride ?? shipment.order.status;
+
+    const lifecycleError = validateOrderShipmentTransition(
+      effectiveOrderStatus,
+      toStatus,
+    );
+
+    if (lifecycleError) {
+      throw new Error(lifecycleError);
     }
 
     const now = new Date();
