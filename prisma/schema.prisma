@@ -439,6 +439,7 @@ model Shipment {
   courier                 Courier?                @relation(fields: [courierId], references: [id], onDelete: Restrict)
   deliveryZone            DeliveryZone?           @relation(fields: [deliveryZoneId], references: [id], onDelete: Restrict)
   packageTier             PackageTier?            @relation(fields: [packageTierId], references: [id], onDelete: Restrict)
+  events                  ShipmentEvent[]
 
   @@index([status, createdAt])
   @@index([courierId, status])
@@ -450,6 +451,22 @@ enum ShippingPointSource {
   VARIANT_OVERRIDE
   PRODUCT_DEFAULT
   SYSTEM_DEFAULT
+}
+
+model ShipmentEvent {
+  id             String         @id @default(cuid())
+  shipmentId     String
+  fromStatus     ShipmentStatus?
+  toStatus       ShipmentStatus
+  note           String?
+  trackingNumber String?
+  createdAt      DateTime       @default(now())
+
+  shipment       Shipment       @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+
+  @@index([shipmentId, createdAt])
+  @@index([toStatus, createdAt])
+  @@map("shipment_events")
 }
 
 enum ShippingPriceStrategy {
