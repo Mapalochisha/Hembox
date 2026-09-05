@@ -80,20 +80,22 @@ function validateOrderShipmentTransition(
   orderStatus: OrderStatus,
   shipmentStatus: ShipmentStatus,
 ): string | null {
-  const shipmentHasPhysicalProgress = [
+  const shipmentHasPhysicalProgress: readonly ShipmentStatus[] = [
     ShipmentStatus.COLLECTED,
     ShipmentStatus.IN_TRANSIT,
     ShipmentStatus.DELIVERED,
-  ].includes(shipmentStatus);
+  ];
+
+  const blockedOrderStatuses: readonly OrderStatus[] = [
+    OrderStatus.PENDING,
+    OrderStatus.CANCELLED,
+    OrderStatus.REFUNDED,
+    OrderStatus.ARCHIVED,
+  ];
 
   if (
-    shipmentHasPhysicalProgress &&
-    [
-      OrderStatus.PENDING,
-      OrderStatus.CANCELLED,
-      OrderStatus.REFUNDED,
-      OrderStatus.ARCHIVED,
-    ].includes(orderStatus)
+    shipmentHasPhysicalProgress.includes(shipmentStatus) &&
+    blockedOrderStatuses.includes(orderStatus)
   ) {
     return `A shipment cannot be ${shipmentStatus.toLowerCase().replaceAll("_", " ")} while the order is ${orderStatus.toLowerCase().replaceAll("_", " ")}.`;
   }
