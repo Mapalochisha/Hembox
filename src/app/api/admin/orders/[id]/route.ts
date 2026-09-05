@@ -229,6 +229,7 @@ export async function PATCH(
         status: shipmentStatus,
         note: shipmentNote,
         trackingNumber,
+        orderStatusOverride: effectiveOrderStatus,
       });
     } else if (shipmentNote !== undefined) {
       return NextResponse.json(
