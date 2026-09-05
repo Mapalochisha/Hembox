@@ -16,6 +16,7 @@ model AdminUser {
   role         AdminRole @default(STAFF)
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
+
   @@map("admin_users")
 }
 
@@ -30,20 +31,22 @@ model StoreSetting {
   key       String   @unique
   value     String
   updatedAt DateTime @updatedAt
+
   @@map("store_settings")
 }
 
 model Product {
-  id              String          @id @default(cuid())
+  id              String              @id @default(cuid())
   name            String
-  slug            String          @unique
-  description     String?         @db.Text
-  status          ProductStatus   @default(DRAFT)
-  featured        Boolean         @default(false)
+  slug            String              @unique
+  description     String?             @db.Text
+  status          ProductStatus       @default(DRAFT)
+  featured        Boolean             @default(false)
   metaTitle       String?
   metaDescription String?
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  shippingPoints  Int                 @default(1)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
   variants        ProductVariant[]
   images          ProductImage[]
   categories      ProductCategory[]
@@ -52,6 +55,7 @@ model Product {
   reviews         Review[]
   orderItems      OrderItem[]
   wishlists       WishlistItem[]
+
   @@map("products")
 }
 
@@ -71,6 +75,7 @@ model Collection {
   createdAt   DateTime            @default(now())
   updatedAt   DateTime            @updatedAt
   products    ProductCollection[]
+
   @@map("collections")
 }
 
@@ -79,26 +84,29 @@ model ProductCollection {
   collectionId String
   product      Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
   collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+
   @@id([productId, collectionId])
   @@map("product_collections")
 }
 
 model ProductVariant {
-  id             String   @id @default(cuid())
-  productId      String
-  sku            String   @unique
-  price          Decimal  @db.Decimal(10, 2)
-  comparePrice   Decimal? @db.Decimal(10, 2)
-  costPrice      Decimal? @db.Decimal(10, 2)
-  inventory      Int      @default(0)
-  allowBackorder Boolean  @default(false)
-  attributes     Json     @default("{}")
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  product        Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
-  orderItems     OrderItem[]
-  cartItems      CartItem[]
-  stockAlerts    StockAlert[]
+  id                     String       @id @default(cuid())
+  productId              String
+  sku                    String       @unique
+  price                  Decimal      @db.Decimal(10, 2)
+  comparePrice           Decimal?     @db.Decimal(10, 2)
+  costPrice              Decimal?     @db.Decimal(10, 2)
+  inventory              Int          @default(0)
+  allowBackorder         Boolean      @default(false)
+  attributes             Json         @default("{}")
+  shippingPointsOverride Int?
+  createdAt              DateTime     @default(now())
+  updatedAt              DateTime     @updatedAt
+  product                Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  orderItems             OrderItem[]
+  cartItems              CartItem[]
+  stockAlerts            StockAlert[]
+
   @@map("product_variants")
 }
 
@@ -111,6 +119,7 @@ model ProductImage {
   position  Int     @default(0)
   isPrimary Boolean @default(false)
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
   @@map("product_images")
 }
 
@@ -126,6 +135,7 @@ model Category {
   parent      Category?         @relation("CategoryTree", fields: [parentId], references: [id])
   children    Category[]        @relation("CategoryTree")
   products    ProductCategory[]
+
   @@map("categories")
 }
 
@@ -134,6 +144,7 @@ model ProductCategory {
   categoryId String
   product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
   @@id([productId, categoryId])
   @@map("product_categories")
 }
@@ -143,6 +154,7 @@ model Tag {
   name     String       @unique
   slug     String       @unique
   products ProductTag[]
+
   @@map("tags")
 }
 
@@ -151,6 +163,7 @@ model ProductTag {
   tagId     String
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
   tag       Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
   @@id([productId, tagId])
   @@map("product_tags")
 }
@@ -170,11 +183,12 @@ model Customer {
   cart          Cart?
   wishlists     WishlistItem[]
   stockAlerts   StockAlert[]
+
   @@map("customers")
 }
 
 model Address {
-  id         String  @id @default(cuid())
+  id         String   @id @default(cuid())
   customerId String
   firstName  String
   lastName   String
@@ -189,6 +203,7 @@ model Address {
   isDefault  Boolean  @default(false)
   customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
   orders     Order[]
+
   @@map("addresses")
 }
 
@@ -200,6 +215,7 @@ model Cart {
   updatedAt  DateTime   @updatedAt
   customer   Customer?  @relation(fields: [customerId], references: [id], onDelete: Cascade)
   items      CartItem[]
+
   @@map("carts")
 }
 
@@ -210,36 +226,40 @@ model CartItem {
   quantity  Int            @default(1)
   cart      Cart           @relation(fields: [cartId], references: [id], onDelete: Cascade)
   variant   ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
   @@unique([cartId, variantId])
   @@map("cart_items")
 }
 
 model Order {
-  id              String        @id @default(cuid())
-  orderNumber     String        @unique
-  customerId      String?
-  addressId       String?
-  status          OrderStatus   @default(PENDING)
-  subtotal        Decimal       @db.Decimal(10, 2)
-  shippingCost    Decimal       @db.Decimal(10, 2) @default(0)
-  discountAmount  Decimal       @db.Decimal(10, 2) @default(0)
-  tax             Decimal       @db.Decimal(10, 2) @default(0)
-  total           Decimal       @db.Decimal(10, 2)
-  guestEmail      String?
-  guestName       String?
-  shippingMethod  String?
-  trackingNumber  String?
-  shippingAddress Json?
-  paymentMethod   String?
-  paymentStatus   PaymentStatus @default(PENDING)
-  paymentRef      String?
-  notes           String?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  customer        Customer?     @relation(fields: [customerId], references: [id])
-  address         Address?      @relation(fields: [addressId], references: [id])
-  items           OrderItem[]
-  discount        DiscountUsage?
+  id                     String         @id @default(cuid())
+  orderNumber            String         @unique
+  customerId             String?
+  addressId              String?
+  status                 OrderStatus    @default(PENDING)
+  subtotal               Decimal        @db.Decimal(10, 2)
+  shippingCost           Decimal        @default(0) @db.Decimal(10, 2)
+  discountAmount         Decimal        @default(0) @db.Decimal(10, 2)
+  tax                    Decimal        @default(0) @db.Decimal(10, 2)
+  total                  Decimal        @db.Decimal(10, 2)
+  guestEmail             String?
+  guestName              String?
+  shippingMethod         String?
+  trackingNumber         String?
+  shippingAddress        Json?
+  paymentMethod          String?
+  paymentStatus          PaymentStatus  @default(PENDING)
+  paymentRef             String?
+  notes                  String?
+  requiresCustomDelivery Boolean        @default(false)
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @updatedAt
+  customer               Customer?      @relation(fields: [customerId], references: [id])
+  address                Address?       @relation(fields: [addressId], references: [id])
+  items                  OrderItem[]
+  discount               DiscountUsage?
+  shipment               Shipment?
+
   @@map("orders")
 }
 
@@ -263,31 +283,233 @@ enum PaymentStatus {
 }
 
 model OrderItem {
-  id              String         @id @default(cuid())
-  orderId         String
-  productId       String
-  variantId       String
-  quantity        Int
-  priceAtPurchase Decimal        @db.Decimal(10, 2)
-  variantSnapshot Json
-  order           Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product         Product        @relation(fields: [productId], references: [id])
-  variant         ProductVariant @relation(fields: [variantId], references: [id])
+  id                    String               @id @default(cuid())
+  orderId               String
+  productId             String
+  variantId             String
+  quantity              Int
+  priceAtPurchase       Decimal              @db.Decimal(10, 2)
+  variantSnapshot       Json
+  shippingPointsPerUnit Int?
+  shippingPointSource   ShippingPointSource?
+  order                 Order                @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product               Product              @relation(fields: [productId], references: [id])
+  variant               ProductVariant       @relation(fields: [variantId], references: [id])
+
   @@map("order_items")
 }
 
+model Courier {
+  id        String         @id @default(cuid())
+  code      String         @unique
+  name      String
+  isActive  Boolean        @default(true)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  zones     DeliveryZone[]
+  tiers     PackageTier[]
+  shipments Shipment[]
+
+  @@index([isActive])
+  @@map("couriers")
+}
+
+model DeliveryLocation {
+  id                 String                 @id @default(cuid())
+  countryCode        String
+  province           String
+  provinceNormalized String
+  town               String
+  townNormalized     String
+  isActive           Boolean                @default(true)
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+  zoneAssignments    DeliveryZoneLocation[]
+
+  @@unique([countryCode, provinceNormalized, townNormalized])
+  @@index([countryCode, provinceNormalized, townNormalized])
+  @@map("delivery_locations")
+}
+
+model DeliveryZone {
+  id          String                 @id @default(cuid())
+  courierId   String
+  code        String
+  name        String
+  description String?
+  isActive    Boolean                @default(true)
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+  courier     Courier                @relation(fields: [courierId], references: [id], onDelete: Restrict)
+  locations   DeliveryZoneLocation[]
+  rates       ShippingRate[]
+  shipments   Shipment[]
+
+  @@unique([courierId, code])
+  @@index([courierId, isActive])
+  @@map("delivery_zones")
+}
+
+model DeliveryZoneLocation {
+  zoneId     String
+  locationId String
+  zone       DeliveryZone     @relation(fields: [zoneId], references: [id], onDelete: Restrict)
+  location   DeliveryLocation @relation(fields: [locationId], references: [id], onDelete: Restrict)
+
+  @@id([zoneId, locationId])
+  @@index([locationId])
+  @@map("delivery_zone_locations")
+}
+
+model PackageTier {
+  id        String         @id @default(cuid())
+  courierId String
+  code      String
+  name      String
+  minPoints Int?
+  maxPoints Int?
+  isCustom  Boolean        @default(false)
+  isActive  Boolean        @default(true)
+  position  Int            @default(0)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  courier   Courier        @relation(fields: [courierId], references: [id], onDelete: Restrict)
+  rates     ShippingRate[]
+  shipments Shipment[]
+
+  @@unique([courierId, code])
+  @@index([courierId, isActive, position])
+  @@map("package_tiers")
+}
+
+model ShippingRate {
+  id                    String                @id @default(cuid())
+  deliveryZoneId        String
+  packageTierId         String
+  courierCost           Decimal               @db.Decimal(10, 2)
+  customerPriceStrategy ShippingPriceStrategy
+  customerPriceValue    Decimal?              @db.Decimal(10, 2)
+  currencyCode          String                @default("ZMW")
+  isActive              Boolean               @default(true)
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  deliveryZone          DeliveryZone          @relation(fields: [deliveryZoneId], references: [id], onDelete: Restrict)
+  packageTier           PackageTier           @relation(fields: [packageTierId], references: [id], onDelete: Restrict)
+
+  @@unique([deliveryZoneId, packageTierId])
+  @@index([packageTierId, isActive])
+  @@map("shipping_rates")
+}
+
+model Shipment {
+  id                      String                  @id @default(cuid())
+  orderId                 String                  @unique
+  courierId               String?
+  deliveryZoneId          String?
+  packageTierId           String?
+  status                  ShipmentStatus          @default(PENDING)
+  selectionMethod         ShipmentSelectionMethod
+  shippingPoints          Int
+  customerShippingPrice   Decimal?                @db.Decimal(10, 2)
+  courierCost             Decimal?                @db.Decimal(10, 2)
+  currencyCode            String                  @default("ZMW")
+  trackingNumber          String?
+  destinationCountryCode  String
+  destinationProvince     String
+  destinationTown         String
+  courierCodeSnapshot     String?
+  courierNameSnapshot     String?
+  zoneCodeSnapshot        String?
+  zoneNameSnapshot        String?
+  tierCodeSnapshot        String?
+  tierNameSnapshot        String?
+  tierMinPointsSnapshot   Int?
+  tierMaxPointsSnapshot   Int?
+  tierIsCustomSnapshot    Boolean?
+  rateIdSnapshot          String?
+  pricingStrategySnapshot ShippingPriceStrategy?
+  pricingValueSnapshot    Decimal?                @db.Decimal(10, 2)
+  createdAt               DateTime                @default(now())
+  updatedAt               DateTime                @updatedAt
+  statusChangedAt         DateTime                @default(now())
+  collectedAt             DateTime?
+  deliveredAt             DateTime?
+  cancelledAt             DateTime?
+  order                   Order                   @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  courier                 Courier?                @relation(fields: [courierId], references: [id], onDelete: Restrict)
+  deliveryZone            DeliveryZone?           @relation(fields: [deliveryZoneId], references: [id], onDelete: Restrict)
+  packageTier             PackageTier?            @relation(fields: [packageTierId], references: [id], onDelete: Restrict)
+  events                  ShipmentEvent[]
+
+  @@index([status, createdAt])
+  @@index([courierId, status])
+  @@index([trackingNumber])
+  @@map("shipments")
+}
+
+enum ShippingPointSource {
+  VARIANT_OVERRIDE
+  PRODUCT_DEFAULT
+  SYSTEM_DEFAULT
+}
+
+model ShipmentEvent {
+  id             String         @id @default(cuid())
+  shipmentId     String
+  fromStatus     ShipmentStatus?
+  toStatus       ShipmentStatus
+  note           String?
+  trackingNumber String?
+  createdAt      DateTime       @default(now())
+
+  shipment       Shipment       @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+
+  @@index([shipmentId, createdAt])
+  @@index([toStatus, createdAt])
+  @@map("shipment_events")
+}
+
+enum ShippingPriceStrategy {
+  MATCH_COURIER_COST
+  FIXED_AMOUNT
+  MARKUP_AMOUNT
+  MARKUP_PERCENT
+  SUBSIDY_AMOUNT
+  FREE
+}
+
+enum ShipmentStatus {
+  PENDING
+  READY_FOR_COURIER
+  COLLECTED
+  IN_TRANSIT
+  DELIVERED
+  FAILED_DELIVERY
+  RETURNED
+  CANCELLED
+  LOST
+  DAMAGED
+}
+
+enum ShipmentSelectionMethod {
+  AUTO_SELECTED
+  CUSTOMER_SELECTED
+  CUSTOM_CONTACT_REQUIRED
+}
+
 model DiscountCode {
-  id             String        @id @default(cuid())
-  code           String        @unique
+  id             String          @id @default(cuid())
+  code           String          @unique
   type           DiscountType
-  value          Decimal       @db.Decimal(10, 2)
-  minOrderAmount Decimal?      @db.Decimal(10, 2)
+  value          Decimal         @db.Decimal(10, 2)
+  minOrderAmount Decimal?        @db.Decimal(10, 2)
   usageLimit     Int?
-  usedCount      Int           @default(0)
+  usedCount      Int             @default(0)
   expiresAt      DateTime?
-  isActive       Boolean       @default(true)
-  createdAt      DateTime      @default(now())
+  isActive       Boolean         @default(true)
+  createdAt      DateTime        @default(now())
   usages         DiscountUsage[]
+
   @@map("discount_codes")
 }
 
@@ -303,6 +525,7 @@ model DiscountUsage {
   usedAt         DateTime     @default(now())
   discountCode   DiscountCode @relation(fields: [discountCodeId], references: [id])
   order          Order        @relation(fields: [orderId], references: [id])
+
   @@map("discount_usages")
 }
 
@@ -317,6 +540,7 @@ model Review {
   createdAt  DateTime     @default(now())
   product    Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
   customer   Customer     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
   @@unique([productId, customerId])
   @@map("reviews")
 }
@@ -334,6 +558,7 @@ model WishlistItem {
   createdAt  DateTime @default(now())
   customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
   product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
   @@unique([customerId, productId])
   @@map("wishlist_items")
 }
@@ -346,6 +571,7 @@ model StockAlert {
   createdAt  DateTime       @default(now())
   customer   Customer       @relation(fields: [customerId], references: [id], onDelete: Cascade)
   variant    ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
   @@unique([customerId, variantId])
   @@map("stock_alerts")
 }

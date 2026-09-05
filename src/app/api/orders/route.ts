@@ -1,150 +1,388 @@
-import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
-import { sendOrderConfirmationEmail, sendAdminOrderNotification } from "@/lib/email";
+import { z } from "zod";
 
-export const dynamic = "force-dynamic";
+import {
+  createOrder,
+  type CreateOrderInput,
+} from "@/lib/orders/service";
 
-function generateOrderNumber() {
-  const timestamp = Date.now().toString(36).toUpperCase();
-  const random = Math.random().toString(36).slice(2, 6).toUpperCase();
-  return `HB-${timestamp}-${random}`;
+import {
+  sendAdminOrderNotification,
+  sendOrderConfirmationEmail,
+} from "@/lib/email";
+
+import type { ShippingOption } from "@/lib/shipping/availability";
+import type { ShippingQuote } from "@/lib/shipping/calculator";
+
+const orderRequestSchema = z.object({
+  items: z
+    .array(
+      z.object({
+        variantId: z
+          .string()
+          .trim()
+          .min(1),
+
+        quantity: z
+          .number()
+          .int()
+          .positive(),
+      }),
+    )
+    .min(1),
+
+  shipping: z.object({
+    name: z
+      .string()
+      .trim()
+      .min(1),
+
+    email: z
+      .string()
+      .trim()
+      .email(),
+
+    phone: z
+      .string()
+      .trim()
+      .min(1),
+
+    address: z
+      .string()
+      .trim()
+      .min(1),
+
+    city: z
+      .string()
+      .trim()
+      .min(1),
+
+    province: z
+      .string()
+      .trim()
+      .min(1),
+
+    notes: z
+      .string()
+      .trim()
+      .nullable()
+      .optional(),
+  }),
+
+  selectedShippingRateId: z
+    .string()
+    .trim()
+    .min(1)
+    .nullable()
+    .optional(),
+});
+
+function isExpectedOrderError(
+  error: unknown,
+): boolean {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  const expectedPrefixes = [
+    "At least one item is required",
+    "Each item must have a variant ID",
+    "Each item quantity must be",
+    "Name is required",
+    "Email is required",
+    "Phone is required",
+    "Address is required",
+    "City is required",
+    "Province is required",
+    "Invalid shipping rate selection",
+    "Product variant not found:",
+    "Product is not available:",
+    "Product is out of stock:",
+    "Invalid shipping points configured",
+    "Invalid price configured",
+    "No shipping options are available",
+    "Please select a shipping option",
+    "The selected shipping option is no longer available",
+    "Shipping calculation",
+    "No configured courier",
+    "No package tier",
+    "No active shipping rate",
+    "Multiple active shipping rates",
+    "Courier",
+    "Package tier",
+  ];
+
+  return expectedPrefixes.some(
+    (prefix) =>
+      error.message.startsWith(prefix),
+  );
 }
 
-export async function POST(req: Request) {
+function serializeShippingOption(
+  option: ShippingOption,
+) {
+  return {
+    courier: {
+      id: option.courierId,
+      code: option.courierCode,
+      name: option.courierName,
+    },
+
+    zone: {
+      id: option.zoneId,
+      code: option.zoneCode,
+      name: option.zoneName,
+    },
+
+    tier: {
+      id: option.tierId,
+      code: option.tierCode,
+      name: option.tierName,
+      minPoints:
+        option.tierMinPoints,
+      maxPoints:
+        option.tierMaxPoints,
+      isCustom:
+        option.tierIsCustom,
+    },
+
+    rate: {
+      id: option.rateId,
+      currencyCode:
+        option.currencyCode,
+    },
+
+    courierCost:
+      option.courierCost,
+
+    customerShippingPrice:
+      option.customerShippingPrice,
+
+    pricingStrategy:
+      option.pricingStrategy,
+
+    pricingValue:
+      option.pricingValue,
+  };
+}
+
+function serializeShippingQuote(
+  quote: ShippingQuote,
+) {
+  return {
+    status:
+      quote.status,
+
+    selectionMethod:
+      quote.selectionMethod,
+
+    currencyCode:
+      quote.currencyCode,
+
+    shippingPoints:
+      quote.shippingPoints,
+
+    destination:
+      quote.destination,
+
+    requiresCustomDelivery:
+      quote.requiresCustomDelivery,
+
+    customDeliveryReason:
+      quote.customDeliveryReason,
+
+    customDeliveryMessage:
+      quote.customDeliveryMessage,
+
+    selectedOption:
+      quote.selectedOption
+        ? serializeShippingOption(
+            quote.selectedOption,
+          )
+        : null,
+
+    options:
+      quote.options.map(
+        serializeShippingOption,
+      ),
+  };
+}
+
+export async function POST(
+  request: Request,
+) {
   try {
-    const body = await req.json();
-    const { items, shipping, subtotal, shippingCost, total } = body;
+    const body: unknown =
+      await request.json();
 
-    if (!items?.length) {
-      return NextResponse.json({ error: "No items in order" }, { status: 400 });
+    const parsed =
+      orderRequestSchema.safeParse(
+        body,
+      );
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        {
+          error:
+            "Invalid order request",
+
+          details:
+            parsed.error.flatten(),
+        },
+        {
+          status: 400,
+        },
+      );
     }
 
-    const orderNumber = generateOrderNumber();
+    const input: CreateOrderInput = {
+      items: parsed.data.items.map(
+        (item) => ({
+          variantId:
+            item.variantId,
 
-    // Find or create customer
-    let customer = await db.customer.findUnique({
-      where: { email: shipping.email },
-      include: { addresses: true },
-    });
+          quantity:
+            item.quantity,
+        }),
+      ),
 
-    if (!customer) {
-      customer = await db.customer.create({
-        data: {
-          email: shipping.email,
-          name: shipping.name,
-          phone: shipping.phone,
-        },
-        include: { addresses: true },
-      });
-    } else {
-      // Update customer info if missing
-      const updateData: any = {};
-      if (!customer.name) updateData.name = shipping.name;
-      if (!customer.phone) updateData.phone = shipping.phone;
-      
-      if (Object.keys(updateData).length > 0) {
-        customer = await db.customer.update({
-          where: { id: customer.id },
-          data: updateData,
-          include: { addresses: true },
-        });
-      }
-    }
+      shipping: {
+        name:
+          parsed.data.shipping.name,
 
-    // Create address if customer has none
-    if (customer.addresses.length === 0) {
-      const nameParts = shipping.name.split(" ");
-      const firstName = nameParts[0];
-      const lastName = nameParts.slice(1).join(" ") || firstName;
+        email:
+          parsed.data.shipping.email,
 
-      await db.address.create({
-        data: {
-          customerId: customer.id,
-          firstName,
-          lastName,
-          line1: shipping.address,
-          city: shipping.city,
-          state: shipping.province,
-          country: "Zambia",
-          phone: shipping.phone,
-          isDefault: true,
-        },
-      });
-    }
+        phone:
+          parsed.data.shipping.phone,
 
-    // Create order
-    const order = await db.order.create({
-      data: {
-        orderNumber,
-        customerId: customer.id,
-        status: "PENDING",
-        paymentStatus: "PENDING",
-        subtotal,
-        shippingCost,
-        total,
-        guestName: shipping.name,
-        guestEmail: shipping.email,
-        notes: shipping.notes || null,
-        shippingAddress: {
-          address: shipping.address,
-          city: shipping.city,
-          province: shipping.province,
-          phone: shipping.phone,
-        },
-        items: {
-          create: items.map((item: any) => ({
-            productId: item.productId,
-            variantId: item.variantId,
-            quantity: item.quantity,
-            priceAtPurchase: item.price,
-            variantSnapshot: {
-              name: item.name,
-              sku: item.sku,
-              price: item.price,
-              attributes: item.attributes,
-            },
-          })),
-        },
+        address:
+          parsed.data.shipping.address,
+
+        city:
+          parsed.data.shipping.city,
+
+        province:
+          parsed.data.shipping.province,
+
+        notes:
+          parsed.data.shipping.notes ??
+          null,
       },
-    });
 
-    // Send emails
-    const emailData = {
-      orderNumber: order.orderNumber,
-      customerName: shipping.name,
-      customerEmail: shipping.email,
-      customerPhone: shipping.phone,
-      items: items.map((item: any) => ({
-        name: item.name,
-        sku: item.sku,
-        quantity: item.quantity,
-        price: item.price,
-        attributes: item.attributes ?? {},
-      })),
-      subtotal,
-      shippingCost,
-      total,
-      shippingAddress: {
-        address: shipping.address,
-        city: shipping.city,
-        province: shipping.province,
-      },
-      notes: shipping.notes,
+      selectedShippingRateId:
+        parsed.data
+          .selectedShippingRateId ??
+        null,
     };
 
-    // Send both emails — don't block order creation if email fails
-    await Promise.allSettled([
-      sendOrderConfirmationEmail(emailData),
-      sendAdminOrderNotification(emailData),
-    ]);
+    const result =
+      await createOrder(input);
 
-    return NextResponse.json({ orderNumber: order.orderNumber, orderId: order.id });
-  } catch (err: any) {
-    console.error("Order error:", err);
-    return NextResponse.json({ error: err.message ?? "Failed to create order" }, { status: 500 });
+    const emailResults =
+      await Promise.allSettled([
+        sendOrderConfirmationEmail(
+          result.emailData,
+        ),
+
+        sendAdminOrderNotification(
+          result.emailData,
+        ),
+      ]);
+
+    const failedEmailCount =
+      emailResults.filter(
+        (emailResult) =>
+          emailResult.status ===
+          "rejected",
+      ).length;
+
+    if (failedEmailCount > 0) {
+      console.error(
+        `Order ${result.orderNumber} was created successfully, but ${failedEmailCount} email notification(s) failed.`,
+        emailResults,
+      );
+    }
+
+    return NextResponse.json(
+      {
+        success: true,
+
+        order: {
+          id:
+            result.orderId,
+
+          orderNumber:
+            result.orderNumber,
+
+          subtotal:
+            result.subtotal,
+
+          shippingCost:
+            result.shippingCost,
+
+          discountAmount:
+            result.discountAmount,
+
+          tax:
+            result.tax,
+
+          total:
+            result.total,
+
+          requiresCustomDelivery:
+            result.requiresCustomDelivery,
+
+          shippingSelectionMethod:
+            result.shippingSelectionMethod,
+
+          shipping:
+            serializeShippingQuote(
+              result.shippingQuote,
+            ),
+        },
+
+        emailNotifications: {
+          attempted: true,
+          failed:
+            failedEmailCount,
+        },
+      },
+
+      {
+        status: 201,
+      },
+    );
+  } catch (error) {
+    console.error(
+      "Failed to create order:",
+      error,
+    );
+
+    if (
+      isExpectedOrderError(error)
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            error instanceof Error
+              ? error.message
+              : "Invalid order request",
+        },
+        {
+          status: 400,
+        },
+      );
+    }
+
+    return NextResponse.json(
+      {
+        error:
+          "Failed to create order",
+      },
+      {
+        status: 500,
+      },
+    );
   }
-}
-
-export async function GET() {
-  return NextResponse.json({ error: "Method not allowed" }, { status: 405 });
 }
