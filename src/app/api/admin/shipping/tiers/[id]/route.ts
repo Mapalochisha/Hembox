@@ -25,7 +25,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     validateTierRange(minPoints, maxPoints);
     await assertNoOverlappingTier(courierId, minPoints, maxPoints, params.id);
 
-    const data: Prisma.PackageTierUpdateInput = { courierId, minPoints, maxPoints };
+    const data: Prisma.PackageTierUncheckedUpdateInput = { courierId, minPoints, maxPoints };
     if (body.code !== undefined) data.code = normalizeShippingCode(String(body.code));
     if (body.name !== undefined) data.name = normalizeShippingText(String(body.name));
     if (body.isCustom !== undefined) data.isCustom = Boolean(body.isCustom);
