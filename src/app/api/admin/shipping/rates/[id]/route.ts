@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { ShippingPriceStrategy } from "@prisma/client";
+import { Prisma, ShippingPriceStrategy } from "@prisma/client";
 import { db } from "@/lib/db";
 import { requireShippingAdmin } from "@/lib/shipping/admin-auth";
 import { normalizeShippingText, parseMoney, validatePricingStrategy } from "@/lib/shipping/admin";
@@ -42,7 +42,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     if (!tier) return NextResponse.json({ error: "Package tier not found." }, { status: 404 });
     if (zone.courierId !== tier.courierId) return NextResponse.json({ error: "Zone and package tier must belong to the same courier." }, { status: 400 });
 
-    const data: Record<string, unknown> = { deliveryZoneId, packageTierId, courierCost, customerPriceStrategy: strategy, customerPriceValue, currencyCode };
+    const data: Prisma.ShippingRateUpdateInput = { deliveryZoneId, packageTierId, courierCost, customerPriceStrategy: strategy, customerPriceValue, currencyCode };
     if (body.isActive !== undefined) data.isActive = Boolean(body.isActive);
     const rate = await db.shippingRate.update({ where: { id: params.id }, data });
     return NextResponse.json(rate);
