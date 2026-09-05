@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { requireShippingAdmin } from "@/lib/shipping/admin-auth";
 import { assertNoOverlappingTier, normalizeShippingCode, normalizeShippingText, parseOptionalInt, validateTierRange } from "@/lib/shipping/admin";
@@ -24,7 +25,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     validateTierRange(minPoints, maxPoints);
     await assertNoOverlappingTier(courierId, minPoints, maxPoints, params.id);
 
-    const data: Record<string, unknown> = { courierId, minPoints, maxPoints };
+    const data: Prisma.PackageTierUpdateInput = { courierId, minPoints, maxPoints };
     if (body.code !== undefined) data.code = normalizeShippingCode(String(body.code));
     if (body.name !== undefined) data.name = normalizeShippingText(String(body.name));
     if (body.isCustom !== undefined) data.isCustom = Boolean(body.isCustom);
