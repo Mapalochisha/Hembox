@@ -1,5 +1,7 @@
 import { VariantGroup } from "@/components/admin/VariantBuilder";
 
+type SubAttributeWithId = VariantGroup["subAttributes"][number] & { id?: string };
+
 export function flattenVariantGroups(groups: VariantGroup[], productSlug: string) {
   const variants: {
     id?: string;
@@ -40,8 +42,9 @@ export function flattenVariantGroups(groups: VariantGroup[], productSlug: string
         _linkedImageIndex: group.imageIndex !== null ? String(group.imageIndex) : "",
       };
 
-      variants.push({
-        ...(sub.id ? { id: sub.id } : {}),
+      const subWithId = sub as SubAttributeWithId;
+      const variant = {
+        ...(subWithId.id ? { id: subWithId.id } : {}),
         sku,
         price,
         comparePrice,
@@ -51,7 +54,9 @@ export function flattenVariantGroups(groups: VariantGroup[], productSlug: string
         shippingPointsOverride: Number.isInteger(parsedShippingPoints) && parsedShippingPoints >= 0
           ? parsedShippingPoints
           : null,
-      });
+      };
+
+      variants.push(variant);
     }
   }
 
@@ -93,7 +98,7 @@ export function groupVariantsForBuilder(variants: any[]): VariantGroup[] {
     const subKey = allKeys.find(k => k !== masterKey);
     const subValue = subKey ? attributes[subKey] : "";
 
-    groupMap[groupKey].subAttributes.push({
+    const subAttribute = {
       ...(v.id ? { id: v.id } : {}),
       attributeKey: subKey ?? masterKey,
       value: subValue,
@@ -103,7 +108,9 @@ export function groupVariantsForBuilder(variants: any[]): VariantGroup[] {
         ? ""
         : String(v.shippingPointsOverride),
       sku: v.sku ?? "",
-    });
+    };
+
+    groupMap[groupKey].subAttributes.push(subAttribute);
   }
 
   return Object.values(groupMap);
