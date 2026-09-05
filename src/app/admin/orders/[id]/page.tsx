@@ -115,6 +115,59 @@ function formatStatus(status: string) {
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
+function getShipmentOrderConsistencyWarning(
+  orderStatus: string,
+  shipmentStatus: string | null,
+): string | null {
+  if (!shipmentStatus) {
+    return null;
+  }
+
+  if (
+    shipmentStatus === "DELIVERED" &&
+    !["DELIVERED", "REFUNDED", "ARCHIVED"].includes(orderStatus)
+  ) {
+    return "Shipment is marked as delivered, but the order is not marked as delivered.";
+  }
+
+  if (
+    shipmentStatus === "CANCELLED" &&
+    !["CANCELLED", "REFUNDED", "ARCHIVED"].includes(orderStatus)
+  ) {
+    return "Shipment is cancelled, but the order is still active.";
+  }
+
+  if (
+    shipmentStatus === "RETURNED" &&
+    !["CANCELLED", "REFUNDED", "ARCHIVED"].includes(orderStatus)
+  ) {
+    return "Shipment has been returned, but the order is not cancelled or refunded.";
+  }
+
+  if (
+    shipmentStatus === "LOST" &&
+    !["CANCELLED", "REFUNDED", "ARCHIVED"].includes(orderStatus)
+  ) {
+    return "Shipment is marked as lost, but the order is still active.";
+  }
+
+  if (
+    shipmentStatus === "DAMAGED" &&
+    !["CANCELLED", "REFUNDED", "ARCHIVED"].includes(orderStatus)
+  ) {
+    return "Shipment is marked as damaged, but the order is still active.";
+  }
+
+  if (
+    shipmentStatus === "IN_TRANSIT" &&
+    orderStatus === "PENDING"
+  ) {
+    return "Shipment is in transit while the order is still pending.";
+  }
+
+  return null;
+}
+
 function formatDate(value: string) {
   return new Date(value).toLocaleDateString("en-GB", {
     day: "numeric",
@@ -400,6 +453,12 @@ export default function OrderDetailPage({
     !isCustomDelivery &&
     shipment?.pricingStrategySnapshot === "FREE";
 
+  const shipmentOrderConsistencyWarning =
+    getShipmentOrderConsistencyWarning(
+      order.status,
+      shipment?.status ?? null,
+    );
+
   return (
     <div className="max-w-6xl">
       <div className="flex items-center gap-4 mb-6">
@@ -424,6 +483,32 @@ export default function OrderDetailPage({
       {error && (
         <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}
+        </div>
+      )}
+
+      {shipmentOrderConsistencyWarning && (
+        <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5 text-amber-700 font-bold">
+              !
+            </div>
+
+            <div>
+              <p className="text-sm font-semibold text-amber-800">
+                Shipment / Order Status Mismatch
+              </p>
+
+              <p className="text-xs text-amber-700 mt-1">
+                {shipmentOrderConsistencyWarning}
+              </p>
+
+              <p className="text-xs text-amber-600 mt-2">
+                Review the shipment and order statuses before
+                making further changes. No status was changed
+                automatically.
+              </p>
+            </div>
+          </div>
         </div>
       )}
 
