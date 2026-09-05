@@ -36,24 +36,22 @@ function validateOrderShipmentConsistency(
     return "An order cannot be marked as delivered until its shipment is marked as delivered.";
   }
 
+  const shippedCompatibleStatuses: readonly ShipmentStatus[] = [
+    ShipmentStatus.COLLECTED,
+    ShipmentStatus.IN_TRANSIT,
+    ShipmentStatus.DELIVERED,
+  ];
+
   if (
     orderStatus === OrderStatus.SHIPPED &&
-    ![
-      ShipmentStatus.COLLECTED,
-      ShipmentStatus.IN_TRANSIT,
-      ShipmentStatus.DELIVERED,
-    ].includes(shipmentStatus)
+    !shippedCompatibleStatuses.includes(shipmentStatus)
   ) {
     return "An order cannot be marked as shipped while its shipment is still pending, ready for courier, cancelled, returned, lost, damaged, or failed delivery.";
   }
 
   if (
     orderStatus === OrderStatus.PENDING &&
-    [
-      ShipmentStatus.COLLECTED,
-      ShipmentStatus.IN_TRANSIT,
-      ShipmentStatus.DELIVERED,
-    ].includes(shipmentStatus)
+    shippedCompatibleStatuses.includes(shipmentStatus)
   ) {
     return "An order cannot remain pending while its shipment has already been collected, is in transit, or has been delivered.";
   }
