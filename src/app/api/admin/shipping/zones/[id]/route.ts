@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { requireShippingAdmin } from "@/lib/shipping/admin-auth";
 import { normalizeShippingCode, normalizeShippingText } from "@/lib/shipping/admin";
@@ -23,7 +24,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   if (auth.response) return auth.response;
   try {
     const body = await req.json();
-    const data: Record<string, unknown> = {};
+    const data: Prisma.DeliveryZoneUpdateInput = {};
     if (body.code !== undefined) data.code = normalizeShippingCode(String(body.code));
     if (body.name !== undefined) data.name = normalizeShippingText(String(body.name));
     if (body.description !== undefined) data.description = body.description ? normalizeShippingText(String(body.description)) : null;
