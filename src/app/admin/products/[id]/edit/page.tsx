@@ -18,6 +18,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
   const [slug, setSlug] = useState("");
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState("DRAFT");
+  const [shippingPoints, setShippingPoints] = useState("1");
   const [categories, setCategories] = useState<{ id: string; name: string; parentId: string | null }[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [collections, setCollections] = useState<{ id: string; name: string }[]>([]);
@@ -35,6 +36,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
       setSlug(data.slug);
       setDescription(data.description ?? "");
       setStatus(data.status);
+      setShippingPoints(String(data.shippingPoints ?? 1));
       setSelectedCategories(data.categories.map((c: any) => c.categoryId));
       setSelectedCollections(data.collections?.map((c: any) => c.collectionId) ?? []);
       setImages((data.images ?? []).map((img: any) => ({
@@ -65,6 +67,12 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
     e.preventDefault();
     setError("");
 
+    const parsedShippingPoints = Number(shippingPoints);
+    if (!Number.isInteger(parsedShippingPoints) || parsedShippingPoints < 0) {
+      setError("Product shipping points must be a whole number of 0 or more.");
+      return;
+    }
+
     const variants = flattenVariantGroups(variantGroups, slug);
 
     setLoading(true);
@@ -73,7 +81,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name, slug, description, status, selectedCategories, selectedCollections,
+          name, slug, description, status, shippingPoints: parsedShippingPoints, selectedCategories, selectedCollections,
           images: images.map((img, i) => ({
             url: img.url,
             publicId: img.publicId,
@@ -151,14 +159,23 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
             <textarea value={description} onChange={e => setDescription(e.target.value)} rows={4}
               className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-[#2D2D2D] resize-none" />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Status</label>
-            <select value={status} onChange={e => setStatus(e.target.value)}
-              className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-[#2D2D2D] bg-white">
-              <option value="DRAFT">Draft</option>
-              <option value="ACTIVE">Active</option>
-              <option value="ARCHIVED">Archived</option>
-            </select>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Status</label>
+              <select value={status} onChange={e => setStatus(e.target.value)}
+                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-[#2D2D2D] bg-white">
+                <option value="DRAFT">Draft</option>
+                <option value="ACTIVE">Active</option>
+                <option value="ARCHIVED">Archived</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Shipping Points</label>
+              <input type="number" min="0" step="1" value={shippingPoints}
+                onChange={e => setShippingPoints(e.target.value)} required
+                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-[#2D2D2D]" />
+              <p className="text-xs text-gray-400 mt-1">Default points charged for each unit unless a variant overrides them.</p>
+            </div>
           </div>
         </div>
 
