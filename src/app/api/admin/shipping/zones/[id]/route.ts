@@ -24,12 +24,17 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   if (auth.response) return auth.response;
   try {
     const body = await req.json();
-    const data: Prisma.DeliveryZoneUpdateInput = {};
+    const data: Prisma.DeliveryZoneUncheckedUpdateInput = {};
+    if (body.courierId !== undefined) data.courierId = String(body.courierId);
     if (body.code !== undefined) data.code = normalizeShippingCode(String(body.code));
     if (body.name !== undefined) data.name = normalizeShippingText(String(body.name));
     if (body.description !== undefined) data.description = body.description ? normalizeShippingText(String(body.description)) : null;
     if (body.isActive !== undefined) data.isActive = Boolean(body.isActive);
     if (data.code === "" || data.name === "") throw new Error("Code and name cannot be empty.");
+    if (data.courierId) {
+      const courier = await db.courier.findUnique({ where: { id: data.courierId } });
+      if (!courier) return NextResponse.json({ error: "Courier not found." }, { status: 404 });
+    }
 
     const zone = await db.deliveryZone.update({ where: { id: params.id }, data, include: { courier: { select: { id: true, code: true, name: true } } } });
     return NextResponse.json(zone);
