@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { ShippingPriceStrategy } from "@prisma/client";
+import { Prisma, ShippingPriceStrategy } from "@prisma/client";
 import { db } from "@/lib/db";
 import { requireShippingAdmin } from "@/lib/shipping/admin-auth";
 import { normalizeShippingText, parseMoney, validatePricingStrategy } from "@/lib/shipping/admin";
@@ -28,7 +28,8 @@ export async function POST(req: Request) {
     const body = await req.json();
     const deliveryZoneId = String(body.deliveryZoneId ?? "");
     const packageTierId = String(body.packageTierId ?? "");
-    const courierCost = parseMoney(body.courierCost, "Courier cost");
+    const parsedCourierCost = parseMoney(body.courierCost, "Courier cost");
+    const courierCost = parsedCourierCost ?? undefined;
     const strategy = body.customerPriceStrategy;
     const customerPriceValue = parseMoney(body.customerPriceValue, "Customer pricing value", true);
     const currencyCode = normalizeShippingText(String(body.currencyCode ?? "ZMW")).toUpperCase();
@@ -36,6 +37,7 @@ export async function POST(req: Request) {
     if (!isStrategy(strategy)) return NextResponse.json({ error: "Invalid customer pricing strategy." }, { status: 400 });
     validatePricingStrategy(strategy, customerPriceValue);
     if (!/^[A-Z]{3}$/.test(currencyCode)) return NextResponse.json({ error: "Currency code must be a 3-letter ISO code." }, { status: 400 });
+    if (courierCost === undefined) return NextResponse.json({ error: "Courier cost is required." }, { status: 400 });
 
     const [zone, tier] = await Promise.all([
       db.deliveryZone.findUnique({ where: { id: deliveryZoneId } }),
