@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { requireShippingAdmin } from "@/lib/shipping/admin-auth";
 import { normalizeLocationPart, normalizeShippingText } from "@/lib/shipping/admin";
@@ -16,7 +17,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   if (auth.response) return auth.response;
   try {
     const body = await req.json();
-    const data: Record<string, unknown> = {};
+    const data: Prisma.DeliveryLocationUpdateInput = {};
     if (body.countryCode !== undefined) {
       const countryCode = normalizeShippingText(String(body.countryCode)).toUpperCase();
       if (countryCode.length !== 2) throw new Error("Country code must be a 2-letter ISO code.");
