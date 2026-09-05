@@ -24,3 +24,5 @@ npm run dev
 | `npm run db:push` | Sync schema to database |
 | `npm run db:studio` | Open Prisma database browser |
 | `npm run db:seed` | Seed database with initial data |
+
+<!-- CI trigger check -->
