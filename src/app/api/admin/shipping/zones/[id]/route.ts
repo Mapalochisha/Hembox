@@ -31,7 +31,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     if (body.description !== undefined) data.description = body.description ? normalizeShippingText(String(body.description)) : null;
     if (body.isActive !== undefined) data.isActive = Boolean(body.isActive);
     if (data.code === "" || data.name === "") throw new Error("Code and name cannot be empty.");
-    if (data.courierId) {
+    if (typeof data.courierId === "string") {
       const courier = await db.courier.findUnique({ where: { id: data.courierId } });
       if (!courier) return NextResponse.json({ error: "Courier not found." }, { status: 404 });
     }
@@ -57,7 +57,8 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     const zone = await db.deliveryZone.findUnique({ where: { id: params.id } });
     if (!zone) return NextResponse.json({ error: "Zone not found." }, { status: 404 });
 
-    const uniqueIds = [...new Set(body.locationIds as string[])];
+    const locationIds = body.locationIds as string[];
+    const uniqueIds = Array.from(new Set(locationIds));
     const count = await db.deliveryLocation.count({ where: { id: { in: uniqueIds }, isActive: true } });
     if (count !== uniqueIds.length) return NextResponse.json({ error: "One or more locations do not exist or are inactive." }, { status: 400 });
 
