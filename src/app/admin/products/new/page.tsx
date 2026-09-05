@@ -17,6 +17,7 @@ export default function NewProductPage() {
   const [slug, setSlug] = useState("");
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState("DRAFT");
+  const [shippingPoints, setShippingPoints] = useState("1");
   const [categories, setCategories] = useState<{ id: string; name: string; parentId: string | null }[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [images, setImages] = useState<{ url: string; publicId: string; isPrimary: boolean }[]>([]);
@@ -49,6 +50,12 @@ export default function NewProductPage() {
 
     if (!name.trim()) { setError("Product name is required."); return; }
 
+    const parsedShippingPoints = Number(shippingPoints);
+    if (!Number.isInteger(parsedShippingPoints) || parsedShippingPoints < 0) {
+      setError("Product shipping points must be a whole number of 0 or more.");
+      return;
+    }
+
     const variants = flattenVariantGroups(variantGroups, slug);
     if (variantGroups.length > 0 && variants.length === 0) {
       setError("Please add at least one sub-attribute value to your variant groups.");
@@ -61,7 +68,7 @@ export default function NewProductPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name, slug, description, status, selectedCategories,
+          name, slug, description, status, shippingPoints: parsedShippingPoints, selectedCategories,
           images: images.map((img, i) => ({
             url: img.url,
             publicId: img.publicId,
@@ -121,14 +128,23 @@ export default function NewProductPage() {
               placeholder="Describe the product..."
               className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-[#2D2D2D] resize-none" />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Status</label>
-            <select value={status} onChange={e => setStatus(e.target.value)}
-              className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-[#2D2D2D] bg-white">
-              <option value="DRAFT">Draft</option>
-              <option value="ACTIVE">Active</option>
-              <option value="ARCHIVED">Archived</option>
-            </select>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Status</label>
+              <select value={status} onChange={e => setStatus(e.target.value)}
+                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-[#2D2D2D] bg-white">
+                <option value="DRAFT">Draft</option>
+                <option value="ACTIVE">Active</option>
+                <option value="ARCHIVED">Archived</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Shipping Points</label>
+              <input type="number" min="0" step="1" value={shippingPoints}
+                onChange={e => setShippingPoints(e.target.value)} required
+                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-[#2D2D2D]" />
+              <p className="text-xs text-gray-400 mt-1">Default points charged for each unit unless a variant overrides them.</p>
+            </div>
           </div>
         </div>
 
