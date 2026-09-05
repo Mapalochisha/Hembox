@@ -51,7 +51,7 @@ export function flattenVariantGroups(groups: VariantGroup[], productSlug: string
         inventory: sub.stock,
         attributes,
         linkedImageIndex: group.imageIndex,
-        shippingPointsOverride: Number.isInteger(parsedShippingPoints) && parsedShippingPoints >= 0
+        shippingPointsOverride: parsedShippingPoints !== null && Number.isInteger(parsedShippingPoints) && parsedShippingPoints >= 0
           ? parsedShippingPoints
           : null,
       };
