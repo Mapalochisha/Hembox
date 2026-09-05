@@ -914,6 +914,15 @@ export async function createOrder(
 
               shipment: {
                 create: {
+                  events: {
+                    create: {
+                      fromStatus: null,
+                      toStatus: "PENDING",
+                      note: "Shipment created",
+                      trackingNumber: null,
+                    },
+                  },
+                  
                   courierId:
                     selectedOption?.courierId ??
                     null,
