@@ -1,7 +1,16 @@
 import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcryptjs";
 const prisma = new PrismaClient();
 
 async function main() {
+  const adminSecret = process.env.HEMBOX_ADMIN_SECRET ?? "change-me";
+  const passwordHash = await bcrypt.hash(adminSecret, 12);
+  await prisma.adminUser.upsert({
+    where: { email: "admin@hembox.com" },
+    update: { passwordHash },
+    create: { email: "admin@hembox.com", name: "HemBox Admin", passwordHash, role: "SUPER_ADMIN" },
+  });
+
   const settings = [
     ["store_name", "HemBox"],
     ["store_currency", "ZMW"],
