@@ -10,6 +10,23 @@ export async function middleware(req: NextRequest) {
     secret: process.env.NEXTAUTH_SECRET,
   });
 
+  // Admin API Protection
+  if (pathname.startsWith("/api/admin")) {
+    if (!token) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 },
+      );
+    }
+
+    if (!isAdminRole(token.role)) {
+      return NextResponse.json(
+        { error: "Forbidden" },
+        { status: 403 },
+      );
+    }
+  }
+
   // Admin Protection
   if (pathname.startsWith("/admin")) {
     if (pathname.startsWith("/admin/login")) {
@@ -30,7 +47,10 @@ export async function middleware(req: NextRequest) {
   // Customer Account Protection
   if (pathname.startsWith("/account")) {
     // Exclude login and register pages
-    if (pathname.startsWith("/account/login") || pathname.startsWith("/account/register")) {
+    if (
+      pathname.startsWith("/account/login") ||
+      pathname.startsWith("/account/register")
+    ) {
       if (token && token.role === "CUSTOMER") {
         return NextResponse.redirect(new URL("/account", req.url));
       }
@@ -50,9 +70,10 @@ export async function middleware(req: NextRequest) {
   return NextResponse.next();
 }
 
-export const config = { 
+export const config = {
   matcher: [
-    "/admin/:path*", 
-    "/account/:path*"
-  ] 
+    "/admin/:path*",
+    "/account/:path*",
+    "/api/admin/:path*",
+  ],
 };
