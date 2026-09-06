@@ -1,0 +1,50 @@
+name: M8 cleanup
+on:
+  push:
+    branches: [feature/shipping-foundation-fixed]
+permissions:
+  contents: write
+jobs:
+  cleanup:
+    if: "!contains(github.event.head_commit.message, 'M8 cleanup applied')"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Patch legacy references
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('src/app/(store)/checkout/page.tsx')
+          s=p.read_text()
+          s=s.replace('              <p className="text-[10px] opacity-35">📦 Free shipping over K 500</p>\n','')
+          p.write_text(s)
+          p=Path('src/app/admin/settings/page.tsx')
+          s=p.read_text()
+          s=s.replace('                "default_shipping_cost",\n                "free_shipping_threshold",\n','')
+          import re
+          s=re.sub(r'\s*<Field label="Default Shipping Cost".*?</Field>\n', '\n', s, flags=re.S)
+          s=re.sub(r'\s*<Field label="Free Shipping Over".*?</Field>\n', '\n', s, flags=re.S)
+          p.write_text(s)
+          PY
+          git show b1752b0f56a1f467406b6f8b1dfdbeb07dfacc86:prisma/seed.ts > prisma/seed.ts
+          sed -i '/key: "free_shipping_threshold"/d;/key: "default_shipping_cost"/d' prisma/seed.ts
+          rm -f .github/workflows/m8-cleanup.yml
+      - name: Verify
+        run: |
+          npm ci
+          npx prisma generate
+          npx tsc --noEmit
+          npm run test:unit
+          npm run build
+      - name: Commit cleanup
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add .
+          git commit -m "M8 cleanup applied"
+          git push
