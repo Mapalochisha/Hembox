@@ -98,9 +98,7 @@ export default function EditSettingsPage() {
       { key: "store_currency_symbol", label: "Currency Symbol (e.g. K)" },
       { key: "store_country", label: "Country" },
     ]},
-    { section: "Shipping & Tax", items: [
-      { key: "default_shipping_cost", label: "Default Shipping Cost" },
-      { key: "free_shipping_threshold", label: "Free Shipping Over" },
+    { section: "Tax", items: [
       { key: "tax_rate", label: "Tax Rate (%)" },
     ]},
     { section: "Content & Legal", items: [
@@ -120,6 +118,10 @@ export default function EditSettingsPage() {
           <h1 className="text-2xl font-bold text-[#2D2D2D]">Edit Settings</h1>
           <p className="text-gray-500 text-sm mt-0.5">Update your store configuration</p>
         </div>
+      </div>
+
+      <div className="mb-6 rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+        Shipping prices, destinations, couriers, zones, tiers, and rates are managed in the Shipping admin section.
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">

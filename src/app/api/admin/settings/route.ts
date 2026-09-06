@@ -3,6 +3,11 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 
+const LEGACY_SHIPPING_KEYS = new Set([
+  "default_shipping_cost",
+  "free_shipping_threshold",
+]);
+
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
@@ -11,7 +16,11 @@ export async function GET() {
     }
 
     const settings = await db.storeSetting.findMany();
-    const map = Object.fromEntries(settings.map((s) => [s.key, s.value]));
+    const map = Object.fromEntries(
+      settings
+        .filter((setting) => !LEGACY_SHIPPING_KEYS.has(setting.key))
+        .map((setting) => [setting.key, setting.value])
+    );
 
     return NextResponse.json(map);
   } catch (error: any) {
@@ -31,9 +40,20 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    
-    // Body should be an object of key-value pairs
-    // Example: { "theme_hero_image": "http...", "theme_collections_banner": "http..." }
+
+    if (
+      body &&
+      typeof body === "object" &&
+      Object.keys(body).some((key) => LEGACY_SHIPPING_KEYS.has(key))
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Legacy shipping settings are no longer supported. Configure shipping through the Shipping admin section.",
+        },
+        { status: 400 }
+      );
+    }
 
     const updatePromises = Object.entries(body).map(([key, value]) => {
       if (typeof value !== "string") return Promise.resolve();

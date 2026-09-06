@@ -1,13 +1,17 @@
 import { VariantGroup } from "@/components/admin/VariantBuilder";
 
+type SubAttributeWithId = VariantGroup["subAttributes"][number] & { id?: string };
+
 export function flattenVariantGroups(groups: VariantGroup[], productSlug: string) {
   const variants: {
+    id?: string;
     sku: string;
     price: number;
     comparePrice: number | null;
     inventory: number;
     attributes: Record<string, string>;
     linkedImageIndex: number | null;
+    shippingPointsOverride: number | null;
   }[] = [];
 
   for (const group of groups) {
@@ -27,8 +31,10 @@ export function flattenVariantGroups(groups: VariantGroup[], productSlug: string
       const sku = sub.sku.trim() ||
         `HB-${productSlug.toUpperCase().slice(0, 8)}-${group.masterValue.replace(/\s+/g, "-").toUpperCase().slice(0, 5)}-${sub.value.replace(/\s+/g, "-").toUpperCase().slice(0, 5)}`;
 
-      // Store _masterKey and _linkedImageIndex as special fields
-      // so we can reconstruct the groups correctly when reading back
+      const parsedShippingPoints = sub.shippingPointsOverride.trim() === ""
+        ? null
+        : parseInt(sub.shippingPointsOverride, 10);
+
       const attributes: Record<string, string> = {
         [group.masterKey]: group.masterValue,
         [sub.attributeKey]: sub.value,
@@ -36,14 +42,21 @@ export function flattenVariantGroups(groups: VariantGroup[], productSlug: string
         _linkedImageIndex: group.imageIndex !== null ? String(group.imageIndex) : "",
       };
 
-      variants.push({
+      const subWithId = sub as SubAttributeWithId;
+      const variant = {
+        ...(subWithId.id ? { id: subWithId.id } : {}),
         sku,
         price,
         comparePrice,
         inventory: sub.stock,
         attributes,
         linkedImageIndex: group.imageIndex,
-      });
+        shippingPointsOverride: parsedShippingPoints !== null && Number.isInteger(parsedShippingPoints) && parsedShippingPoints >= 0
+          ? parsedShippingPoints
+          : null,
+      };
+
+      variants.push(variant);
     }
   }
 
@@ -56,7 +69,6 @@ export function groupVariantsForBuilder(variants: any[]): VariantGroup[] {
   for (const v of variants) {
     const attributes = v.attributes ?? {};
 
-    // Use stored _masterKey if available, otherwise fall back to first non-underscore key
     const allKeys = Object.keys(attributes).filter(k => !k.startsWith("_"));
     const masterKey = attributes._masterKey && allKeys.includes(attributes._masterKey)
       ? attributes._masterKey
@@ -67,7 +79,6 @@ export function groupVariantsForBuilder(variants: any[]): VariantGroup[] {
     const masterValue = attributes[masterKey];
     const groupKey = `${masterKey}:${masterValue}`;
 
-    // Get linked image index from stored field
     const linkedImageIndex = attributes._linkedImageIndex !== undefined && attributes._linkedImageIndex !== ""
       ? parseInt(attributes._linkedImageIndex)
       : null;
@@ -84,17 +95,22 @@ export function groupVariantsForBuilder(variants: any[]): VariantGroup[] {
       };
     }
 
-    // Get sub attribute — any key that isn't master and doesn't start with _
     const subKey = allKeys.find(k => k !== masterKey);
     const subValue = subKey ? attributes[subKey] : "";
 
-    groupMap[groupKey].subAttributes.push({
+    const subAttribute = {
+      ...(v.id ? { id: v.id } : {}),
       attributeKey: subKey ?? masterKey,
       value: subValue,
       stock: v.inventory ?? 0,
       priceOverride: "",
+      shippingPointsOverride: v.shippingPointsOverride === null || v.shippingPointsOverride === undefined
+        ? ""
+        : String(v.shippingPointsOverride),
       sku: v.sku ?? "",
-    });
+    };
+
+    groupMap[groupKey].subAttributes.push(subAttribute);
   }
 
   return Object.values(groupMap);

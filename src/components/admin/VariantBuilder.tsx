@@ -10,6 +10,7 @@ export interface SubAttribute {
   value: string;
   stock: number;
   priceOverride: string;
+  shippingPointsOverride: string;
   sku: string;
 }
 
@@ -44,7 +45,7 @@ function generateSku(productSlug: string, masterKey: string, masterValue: string
 export default function VariantBuilder({ groups, onChange, productSlug, images }: Props) {
   const [presets, setPresets] = useState<string[]>(DEFAULT_PRESETS);
   const [newPreset, setNewPreset] = useState("");
-  const [showAddPreset, setShowAddPreset] = useState<string | null>(null); // groupId-"master" or groupId-subIndex
+  const [showAddPreset, setShowAddPreset] = useState<string | null>(null);
 
   function addGroup() {
     onChange([...groups, {
@@ -54,7 +55,14 @@ export default function VariantBuilder({ groups, onChange, productSlug, images }
       groupPrice: "",
       comparePrice: "",
       imageIndex: null,
-      subAttributes: [{ attributeKey: presets.find(p => p !== presets[0]) ?? presets[0], value: "", stock: 0, priceOverride: "", sku: "" }],
+      subAttributes: [{
+        attributeKey: presets.find(p => p !== presets[0]) ?? presets[0],
+        value: "",
+        stock: 0,
+        priceOverride: "",
+        shippingPointsOverride: "",
+        sku: "",
+      }],
     }]);
   }
 
@@ -72,7 +80,14 @@ export default function VariantBuilder({ groups, onChange, productSlug, images }
       const availableKey = presets.find(p => p !== masterKey) ?? presets[0];
       return {
         ...g,
-        subAttributes: [...g.subAttributes, { attributeKey: availableKey, value: "", stock: 0, priceOverride: "", sku: "" }]
+        subAttributes: [...g.subAttributes, {
+          attributeKey: availableKey,
+          value: "",
+          stock: 0,
+          priceOverride: "",
+          shippingPointsOverride: "",
+          sku: "",
+        }]
       };
     }));
   }
@@ -141,20 +156,16 @@ export default function VariantBuilder({ groups, onChange, productSlug, images }
     <div className="space-y-4">
       {groups.map((group, gi) => (
         <div key={group.id} className="border border-gray-200 rounded-xl p-5 space-y-4 bg-gray-50/50">
-          {/* Group header */}
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold text-gray-700">Variant Group {gi + 1}</h3>
-            <button type="button" onClick={() => removeGroup(group.id)}
-              className="text-red-400 hover:text-red-600 transition-colors">
+            <button type="button" onClick={() => removeGroup(group.id)} className="text-red-400 hover:text-red-600 transition-colors">
               <Trash2 size={15} />
             </button>
           </div>
 
-          {/* Master attribute */}
           <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
             <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Master Attribute</p>
             <div className="grid grid-cols-2 gap-3">
-              {/* Master key dropdown */}
               <div>
                 <label className="block text-xs text-gray-400 mb-1">Attribute Name</label>
                 {showAddPreset === `${group.id}-master` ? (
@@ -163,70 +174,48 @@ export default function VariantBuilder({ groups, onChange, productSlug, images }
                       onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleAddPreset("", group.id, "master"); } }}
                       placeholder="e.g. Fabric" autoFocus
                       className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-gray-400" />
-                    <button type="button" onClick={() => handleAddPreset("", group.id, "master")}
-                      className="bg-[#2D2D2D] text-white text-xs px-3 rounded-lg">Add</button>
-                    <button type="button" onClick={() => { setShowAddPreset(null); setNewPreset(""); }}
-                      className="text-gray-400 text-xs px-1">✕</button>
+                    <button type="button" onClick={() => handleAddPreset("", group.id, "master")} className="bg-[#2D2D2D] text-white text-xs px-3 rounded-lg">Add</button>
+                    <button type="button" onClick={() => { setShowAddPreset(null); setNewPreset(""); }} className="text-gray-400 text-xs px-1">✕</button>
                   </div>
                 ) : (
                   <div className="flex gap-2">
-                    <select value={group.masterKey}
-                      onChange={e => updateGroup(group.id, "masterKey", e.target.value)}
+                    <select value={group.masterKey} onChange={e => updateGroup(group.id, "masterKey", e.target.value)}
                       className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-gray-400 bg-white">
                       {presets.map(p => <option key={p} value={p}>{p}</option>)}
                     </select>
-                    <button type="button" onClick={() => setShowAddPreset(`${group.id}-master`)}
-                      className="text-xs text-gray-400 hover:text-gray-600 border border-gray-200 rounded-lg px-2 hover:bg-gray-50 whitespace-nowrap">
-                      + New
-                    </button>
+                    <button type="button" onClick={() => setShowAddPreset(`${group.id}-master`)} className="text-xs text-gray-400 hover:text-gray-600 border border-gray-200 rounded-lg px-2 hover:bg-gray-50 whitespace-nowrap">+ New</button>
                   </div>
                 )}
               </div>
 
-              {/* Master value input */}
               <div>
                 <label className="block text-xs text-gray-400 mb-1">Value</label>
-                <input value={group.masterValue}
-                  onChange={e => updateGroup(group.id, "masterValue", e.target.value)}
+                <input value={group.masterValue} onChange={e => updateGroup(group.id, "masterValue", e.target.value)}
                   placeholder={`e.g. ${group.masterKey === "Color" ? "Red" : group.masterKey === "Size" ? "Large" : "Value"}`}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-gray-400" />
               </div>
             </div>
 
-            {/* Group price */}
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs text-gray-400 mb-1">Group Price (K)</label>
-                <input type="number" min="0" step="0.01" value={group.groupPrice}
-                  onChange={e => updateGroup(group.id, "groupPrice", e.target.value)}
-                  placeholder="0.00"
+                <input type="number" min="0" step="0.01" value={group.groupPrice} onChange={e => updateGroup(group.id, "groupPrice", e.target.value)} placeholder="0.00"
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-gray-400" />
               </div>
               <div>
                 <label className="block text-xs text-gray-400 mb-1">Compare Price (K)</label>
-                <input type="number" min="0" step="0.01" value={group.comparePrice}
-                  onChange={e => updateGroup(group.id, "comparePrice", e.target.value)}
-                  placeholder="0.00"
+                <input type="number" min="0" step="0.01" value={group.comparePrice} onChange={e => updateGroup(group.id, "comparePrice", e.target.value)} placeholder="0.00"
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-gray-400" />
               </div>
             </div>
 
-            {/* Image link */}
             {images.length > 0 && (
               <div>
-                <label className="block text-xs text-gray-400 mb-1.5 flex items-center gap-1">
-                  <ImageIcon size={10} /> Link to Image
-                </label>
+                <label className="block text-xs text-gray-400 mb-1.5 flex items-center gap-1"><ImageIcon size={10} /> Link to Image</label>
                 <div className="flex gap-2 flex-wrap">
-                  <button type="button" onClick={() => updateGroup(group.id, "imageIndex", null)}
-                    className={`w-10 h-10 rounded-lg border-2 flex items-center justify-center text-[10px] transition-colors
-                      ${group.imageIndex === null ? "border-[#2D2D2D] bg-gray-100 font-bold" : "border-gray-200 hover:border-gray-300"}`}>
-                    None
-                  </button>
+                  <button type="button" onClick={() => updateGroup(group.id, "imageIndex", null)} className={`w-10 h-10 rounded-lg border-2 flex items-center justify-center text-[10px] transition-colors ${group.imageIndex === null ? "border-[#2D2D2D] bg-gray-100 font-bold" : "border-gray-200 hover:border-gray-300"}`}>None</button>
                   {images.map((img, i) => (
-                    <button key={i} type="button" onClick={() => updateGroup(group.id, "imageIndex", i)}
-                      className={`w-10 h-10 rounded-lg border-2 overflow-hidden transition-colors
-                        ${group.imageIndex === i ? "border-[#2D2D2D]" : "border-gray-200 hover:border-gray-300"}`}>
+                    <button key={i} type="button" onClick={() => updateGroup(group.id, "imageIndex", i)} className={`w-10 h-10 rounded-lg border-2 overflow-hidden transition-colors ${group.imageIndex === i ? "border-[#2D2D2D]" : "border-gray-200 hover:border-gray-300"}`}>
                       <img src={img.url} alt="" className="w-full h-full object-cover" />
                     </button>
                   ))}
@@ -235,119 +224,79 @@ export default function VariantBuilder({ groups, onChange, productSlug, images }
             )}
           </div>
 
-          {/* Sub-attributes */}
           <div className="space-y-2">
             <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Sub-Attributes</p>
+            <p className="text-xs text-gray-400">Leave variant shipping points blank to inherit the product default.</p>
 
-            {/* Header row */}
-            <div className="grid grid-cols-12 gap-2 px-1">
+            <div className="grid grid-cols-14 gap-2 px-1">
               <div className="col-span-3 text-xs text-gray-400">Attribute</div>
               <div className="col-span-2 text-xs text-gray-400">Value</div>
               <div className="col-span-2 text-xs text-gray-400">Stock</div>
               <div className="col-span-2 text-xs text-gray-400">Price Override</div>
+              <div className="col-span-2 text-xs text-gray-400">Ship Pts</div>
               <div className="col-span-2 text-xs text-gray-400">SKU</div>
               <div className="col-span-1"></div>
             </div>
 
             {group.subAttributes.map((sub, si) => (
-              <div key={si} className="grid grid-cols-12 gap-2 items-center bg-white border border-gray-100 rounded-lg p-2">
-                {/* Sub attribute key */}
+              <div key={si} className="grid grid-cols-14 gap-2 items-center bg-white border border-gray-100 rounded-lg p-2">
                 <div className="col-span-3">
                   {showAddPreset === `${group.id}-${si}` ? (
                     <div className="flex gap-1">
-                      <input value={newPreset} onChange={e => setNewPreset(e.target.value)}
-                        onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleAddPreset("", group.id, si); } }}
-                        placeholder="New..." autoFocus
-                        className="flex-1 border border-gray-200 rounded px-2 py-1.5 text-xs focus:outline-none w-0 min-w-0" />
-                      <button type="button" onClick={() => handleAddPreset("", group.id, si)}
-                        className="bg-[#2D2D2D] text-white text-[10px] px-2 rounded">OK</button>
-                      <button type="button" onClick={() => { setShowAddPreset(null); setNewPreset(""); }}
-                        className="text-gray-400 text-[10px]">✕</button>
+                      <input value={newPreset} onChange={e => setNewPreset(e.target.value)} onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleAddPreset("", group.id, si); } }} placeholder="New..." autoFocus className="flex-1 border border-gray-200 rounded px-2 py-1.5 text-xs focus:outline-none w-0 min-w-0" />
+                      <button type="button" onClick={() => handleAddPreset("", group.id, si)} className="bg-[#2D2D2D] text-white text-[10px] px-2 rounded">OK</button>
+                      <button type="button" onClick={() => { setShowAddPreset(null); setNewPreset(""); }} className="text-gray-400 text-[10px]">✕</button>
                     </div>
                   ) : (
                     <div className="flex gap-1">
-                      <select value={sub.attributeKey}
-                        onChange={e => updateSubAttribute(group.id, si, "attributeKey", e.target.value, group)}
-                        className="flex-1 border border-gray-200 rounded px-2 py-1.5 text-xs focus:outline-none focus:border-gray-400 bg-white w-0 min-w-0">
-                        {presets.filter(p => p !== group.masterKey).map(p => (
-                          <option key={p} value={p}>{p}</option>
-                        ))}
+                      <select value={sub.attributeKey} onChange={e => updateSubAttribute(group.id, si, "attributeKey", e.target.value, group)} className="flex-1 border border-gray-200 rounded px-2 py-1.5 text-xs focus:outline-none focus:border-gray-400 bg-white w-0 min-w-0">
+                        {presets.filter(p => p !== group.masterKey).map(p => <option key={p} value={p}>{p}</option>)}
                       </select>
-                      <button type="button" onClick={() => setShowAddPreset(`${group.id}-${si}`)}
-                        className="text-[10px] text-gray-400 hover:text-gray-600 border border-gray-200 rounded px-1.5 hover:bg-gray-50">
-                        +
-                      </button>
+                      <button type="button" onClick={() => setShowAddPreset(`${group.id}-${si}`)} className="text-[10px] text-gray-400 hover:text-gray-600 border border-gray-200 rounded px-1.5 hover:bg-gray-50">+</button>
                     </div>
                   )}
                 </div>
 
-                {/* Sub attribute value */}
                 <div className="col-span-2">
-                  <input value={sub.value}
-                    onChange={e => updateSubAttribute(group.id, si, "value", e.target.value, group)}
-                    placeholder={sub.attributeKey === "Size" ? "e.g. M" : "Value"}
-                    className="w-full border border-gray-200 rounded px-2 py-1.5 text-xs focus:outline-none focus:border-gray-400" />
+                  <input value={sub.value} onChange={e => updateSubAttribute(group.id, si, "value", e.target.value, group)} placeholder={sub.attributeKey === "Size" ? "e.g. M" : "Value"} className="w-full border border-gray-200 rounded px-2 py-1.5 text-xs focus:outline-none focus:border-gray-400" />
                 </div>
 
-                {/* Stock counter */}
                 <div className="col-span-2">
                   <div className="flex items-center border border-gray-200 rounded overflow-hidden">
-                    <input type="number" min="0" value={sub.stock}
-                      onChange={e => updateSubAttribute(group.id, si, "stock", parseInt(e.target.value) || 0, group)}
-                      className="flex-1 px-2 py-1.5 text-xs focus:outline-none w-0 min-w-0" />
+                    <input type="number" min="0" value={sub.stock} onChange={e => updateSubAttribute(group.id, si, "stock", parseInt(e.target.value) || 0, group)} className="flex-1 px-2 py-1.5 text-xs focus:outline-none w-0 min-w-0" />
                     <div className="flex flex-col border-l border-gray-200">
-                      <button type="button" onClick={() => updateStock(group.id, si, 1)}
-                        className="px-1.5 py-0.5 hover:bg-gray-50 border-b border-gray-200">
-                        <ChevronUp size={9} />
-                      </button>
-                      <button type="button" onClick={() => updateStock(group.id, si, -1)}
-                        className="px-1.5 py-0.5 hover:bg-gray-50">
-                        <ChevronDown size={9} />
-                      </button>
+                      <button type="button" onClick={() => updateStock(group.id, si, 1)} className="px-1.5 py-0.5 hover:bg-gray-50 border-b border-gray-200"><ChevronUp size={9} /></button>
+                      <button type="button" onClick={() => updateStock(group.id, si, -1)} className="px-1.5 py-0.5 hover:bg-gray-50"><ChevronDown size={9} /></button>
                     </div>
                   </div>
                 </div>
 
-                {/* Price override */}
                 <div className="col-span-2">
-                  <input type="number" min="0" step="0.01" value={sub.priceOverride}
-                    onChange={e => updateSubAttribute(group.id, si, "priceOverride", e.target.value, group)}
-                    placeholder={group.groupPrice || "Inherit"}
-                    className="w-full border border-gray-200 rounded px-2 py-1.5 text-xs focus:outline-none focus:border-gray-400" />
+                  <input type="number" min="0" step="0.01" value={sub.priceOverride} onChange={e => updateSubAttribute(group.id, si, "priceOverride", e.target.value, group)} placeholder={group.groupPrice || "Inherit"} className="w-full border border-gray-200 rounded px-2 py-1.5 text-xs focus:outline-none focus:border-gray-400" />
                 </div>
 
-                {/* SKU */}
                 <div className="col-span-2">
-                  <input value={sub.sku}
-                    onChange={e => updateSubAttribute(group.id, si, "sku", e.target.value.toUpperCase(), group)}
-                    placeholder="Auto"
-                    className="w-full border border-gray-200 rounded px-2 py-1.5 text-xs focus:outline-none focus:border-gray-400 font-mono" />
+                  <input type="number" min="0" step="1" value={sub.shippingPointsOverride} onChange={e => updateSubAttribute(group.id, si, "shippingPointsOverride", e.target.value, group)} placeholder="Default" title="Leave blank to use the product shipping points" className="w-full border border-gray-200 rounded px-2 py-1.5 text-xs focus:outline-none focus:border-gray-400" />
                 </div>
 
-                {/* Remove */}
+                <div className="col-span-2">
+                  <input value={sub.sku} onChange={e => updateSubAttribute(group.id, si, "sku", e.target.value.toUpperCase(), group)} placeholder="Auto" className="w-full border border-gray-200 rounded px-2 py-1.5 text-xs focus:outline-none focus:border-gray-400 font-mono" />
+                </div>
+
                 <div className="col-span-1 flex justify-center">
                   {group.subAttributes.length > 1 && (
-                    <button type="button" onClick={() => removeSubAttribute(group.id, si)}
-                      className="text-red-400 hover:text-red-600 transition-colors">
-                      <Trash2 size={12} />
-                    </button>
+                    <button type="button" onClick={() => removeSubAttribute(group.id, si)} className="text-red-400 hover:text-red-600 transition-colors"><Trash2 size={12} /></button>
                   )}
                 </div>
               </div>
             ))}
 
-            <button type="button" onClick={() => addSubAttribute(group.id, group.masterKey)}
-              className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-gray-700 border border-dashed border-gray-300 rounded-lg px-3 py-2 hover:border-gray-400 transition-colors w-full justify-center">
-              <Plus size={11} /> Add Sub-Attribute
-            </button>
+            <button type="button" onClick={() => addSubAttribute(group.id, group.masterKey)} className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-gray-700 border border-dashed border-gray-300 rounded-lg px-3 py-2 hover:border-gray-400 transition-colors w-full justify-center"><Plus size={11} /> Add Sub-Attribute</button>
           </div>
         </div>
       ))}
 
-      <button type="button" onClick={addGroup}
-        className="flex items-center gap-2 text-sm font-medium text-gray-600 border border-gray-200 px-4 py-2.5 rounded-lg hover:bg-gray-50 transition-colors">
-        <Plus size={14} /> Add Variant Group
-      </button>
+      <button type="button" onClick={addGroup} className="flex items-center gap-2 text-sm font-medium text-gray-600 border border-gray-200 px-4 py-2.5 rounded-lg hover:bg-gray-50 transition-colors"><Plus size={14} /> Add Variant Group</button>
     </div>
   );
 }
