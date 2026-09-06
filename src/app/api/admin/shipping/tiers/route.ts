@@ -23,15 +23,16 @@ export async function POST(req: Request) {
     const name = normalizeShippingText(String(body.name ?? ""));
     const minPoints = parseOptionalInt(body.minPoints, "Minimum points");
     const maxPoints = parseOptionalInt(body.maxPoints, "Maximum points");
+    const isCustom = body.isCustom === true;
     const position = body.position === undefined ? 0 : Number(body.position);
     if (!courierId || !code || !name) return NextResponse.json({ error: "Courier, code, and name are required." }, { status: 400 });
     if (!Number.isInteger(position) || position < 0) throw new Error("Position must be a non-negative integer.");
-    validateTierRange(minPoints, maxPoints);
+    validateTierRange(minPoints, maxPoints, isCustom);
     await assertNoOverlappingTier(courierId, minPoints, maxPoints);
     const courier = await db.courier.findUnique({ where: { id: courierId } });
     if (!courier) return NextResponse.json({ error: "Courier not found." }, { status: 404 });
 
-    const tier = await db.packageTier.create({ data: { courierId, code, name, minPoints, maxPoints, isCustom: body.isCustom === true, position, isActive: body.isActive !== false } });
+    const tier = await db.packageTier.create({ data: { courierId, code, name, minPoints, maxPoints, isCustom, position, isActive: body.isActive !== false } });
     return NextResponse.json(tier, { status: 201 });
   } catch (error: any) {
     if (error?.code === "P2002") return NextResponse.json({ error: "A tier with this code already exists for this courier." }, { status: 409 });
