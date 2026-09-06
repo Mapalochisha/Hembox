@@ -22,14 +22,14 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     const courierId = body.courierId === undefined ? current.courierId : String(body.courierId);
     const minPoints = body.minPoints === undefined ? current.minPoints : parseOptionalInt(body.minPoints, "Minimum points");
     const maxPoints = body.maxPoints === undefined ? current.maxPoints : parseOptionalInt(body.maxPoints, "Maximum points");
-    validateTierRange(minPoints, maxPoints);
-    await assertNoOverlappingTier(courierId, minPoints, maxPoints, params.id);
+    const isCustom = body.isCustom === undefined ? current.isCustom : Boolean(body.isCustom);
+    const isActive = body.isActive === undefined ? current.isActive : Boolean(body.isActive);
+    validateTierRange(minPoints, maxPoints, isCustom);
+    if (isActive) await assertNoOverlappingTier(courierId, minPoints, maxPoints, params.id);
 
-    const data: Prisma.PackageTierUncheckedUpdateInput = { courierId, minPoints, maxPoints };
+    const data: Prisma.PackageTierUncheckedUpdateInput = { courierId, minPoints, maxPoints, isCustom, isActive };
     if (body.code !== undefined) data.code = normalizeShippingCode(String(body.code));
     if (body.name !== undefined) data.name = normalizeShippingText(String(body.name));
-    if (body.isCustom !== undefined) data.isCustom = Boolean(body.isCustom);
-    if (body.isActive !== undefined) data.isActive = Boolean(body.isActive);
     if (body.position !== undefined) {
       const position = Number(body.position);
       if (!Number.isInteger(position) || position < 0) throw new Error("Position must be a non-negative integer.");
