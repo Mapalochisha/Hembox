@@ -416,22 +416,11 @@ export default function SettingsPage() {
             icon={Truck}
             onSave={() =>
               save("shipping", [
-                "default_shipping_cost",
-                "free_shipping_threshold",
                 "estimated_delivery_days",
               ])
             }
             saveState={saveStates.shipping}
           >
-            <Field label="Default Shipping Cost" hint="Applied to all orders under the free shipping threshold.">
-              <Input
-                value={get("default_shipping_cost", "50")}
-                onChange={(v) => set("default_shipping_cost", v)}
-                type="number"
-                prefix={get("store_currency_symbol", "K")}
-                placeholder="50"
-              />
-            </Field>
             <Field label="Free Shipping Threshold" hint="Orders at or above this amount ship free. Set to 0 to disable.">
               <Input
                 value={get("free_shipping_threshold", "500")}
