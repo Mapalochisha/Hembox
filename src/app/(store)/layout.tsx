@@ -9,12 +9,10 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
       <CartDrawer />
       {children}
 
-      {/* Footer */}
       <footer className="bg-[#111] text-white mt-16">
-        {/* Top banner */}
         <div className="border-b border-white/10 px-6 md:px-10 py-6 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex flex-wrap justify-center md:justify-start gap-6 md:gap-10 text-xs tracking-widest uppercase opacity-50">
-            {["Free Shipping Over K500", "30-Day Returns", "Authentic Quality"].map(item => (
+            {["Destination-based Shipping", "30-Day Returns", "Authentic Quality"].map(item => (
               <span key={item} className="flex items-center gap-2">
                 <span className="w-1 h-1 rounded-full bg-white opacity-40 inline-block" />
                 {item}
@@ -28,16 +26,13 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
           </div>
         </div>
 
-        {/* Main footer content */}
         <div className="px-6 md:px-10 py-12">
           <div className="grid grid-cols-2 md:grid-cols-5 gap-8 md:gap-12">
-            {/* Brand column */}
             <div className="col-span-2 md:col-span-2">
               <p className="font-black text-xl tracking-widest uppercase mb-4">HemBox</p>
               <p className="opacity-35 text-xs leading-relaxed max-w-xs mb-6">
                 Premium clothing crafted for everyday living. Quality you can feel, style you can own.
               </p>
-              {/* Newsletter */}
               <p className="text-xs tracking-widest uppercase opacity-50 mb-3">Stay in the loop</p>
               <div className="flex gap-2">
                 <input
@@ -51,7 +46,6 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
               </div>
             </div>
 
-            {/* Links */}
             {[
               { title: "Shop", links: [
                 { label: "Men", href: "/categories/men" },
@@ -87,7 +81,6 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
           </div>
         </div>
 
-        {/* Bottom bar */}
         <div className="border-t border-white/10 px-6 md:px-10 py-5 flex flex-col md:flex-row items-center justify-between gap-3">
           <p className="text-xs opacity-25">© 2026 HemBox. All rights reserved.</p>
           <div className="flex items-center gap-2">
