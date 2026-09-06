@@ -421,15 +421,6 @@ export default function SettingsPage() {
             }
             saveState={saveStates.shipping}
           >
-            <Field label="Free Shipping Threshold" hint="Orders at or above this amount ship free. Set to 0 to disable.">
-              <Input
-                value={get("free_shipping_threshold", "500")}
-                onChange={(v) => set("free_shipping_threshold", v)}
-                type="number"
-                prefix={get("store_currency_symbol", "K")}
-                placeholder="500"
-              />
-            </Field>
             <Field label="Estimated Delivery" hint="Shown to customers during checkout.">
               <Input
                 value={get("estimated_delivery_days", "2–5 business days")}
