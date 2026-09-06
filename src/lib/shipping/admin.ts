@@ -1,36 +1,19 @@
 import { Prisma, ShippingPriceStrategy } from "@prisma/client";
 import { db } from "@/lib/db";
 
-export function normalizeShippingText(value: string) { return value.trim().replace(/\s+/g, " "); }
-export function normalizeShippingCode(value: string) { return normalizeShippingText(value).toUpperCase(); }
-export function normalizeLocationPart(value: string) { return normalizeShippingText(value).toLowerCase(); }
-export function parseOptionalInt(value: unknown, field: string) { if (value === null || value === undefined || value === "") return null; const parsed = Number(value); if (!Number.isInteger(parsed)) throw new Error(`${field} must be an integer.`); return parsed; }
-export function parseNonNegativeInt(value: unknown, field: string) { const parsed = Number(value); if (!Number.isInteger(parsed) || parsed < 0) throw new Error(`${field} must be a non-negative integer.`); return parsed; }
-export function parseMoney(value: unknown, field: string, allowNull = false) { if ((value === null || value === undefined || value === "") && allowNull) return null; const parsed = Number(value); if (!Number.isFinite(parsed) || parsed < 0) throw new Error(`${field} must be a non-negative number.`); return new Prisma.Decimal(parsed.toFixed(2)); }
-
-export function validateTierRange(minPoints: number | null, maxPoints: number | null, isCustom = false) {
-  if (isCustom) { if (minPoints !== null || maxPoints !== null) throw new Error("Custom package tiers cannot define point bounds."); return; }
-  if (minPoints === null || maxPoints === null) throw new Error("Standard package tiers require minimum and maximum points.");
-  if (minPoints < 0 || maxPoints < 0) throw new Error("Package tier points cannot be negative.");
-  if (minPoints > maxPoints) throw new Error("Minimum points cannot exceed maximum points.");
-}
-
-export async function assertNoOverlappingTier(courierId: string, minPoints: number | null, maxPoints: number | null, excludeId?: string) {
-  const tiers = await db.packageTier.findMany({ where: { courierId, isActive: true, ...(excludeId ? { id: { not: excludeId } } : {}) }, select: { id: true, name: true, minPoints: true, maxPoints: true, isCustom: true } });
-  if (minPoints === null && maxPoints === null) {
-    if (tiers.some((tier) => tier.isCustom && tier.minPoints === null && tier.maxPoints === null)) throw new Error("An active custom tier already exists for this courier.");
-    return;
-  }
-  const incomingMin = minPoints ?? Number.NEGATIVE_INFINITY;
-  const incomingMax = maxPoints ?? Number.POSITIVE_INFINITY;
-  const overlap = tiers.find((tier) => { const existingMin = tier.minPoints ?? Number.NEGATIVE_INFINITY; const existingMax = tier.maxPoints ?? Number.POSITIVE_INFINITY; return incomingMin <= existingMax && existingMin <= incomingMax; });
-  if (overlap) throw new Error(`Tier overlaps the existing tier "${overlap.name}".`);
-}
-
-export function validatePricingStrategy(strategy: ShippingPriceStrategy, value: Prisma.Decimal | null) { if (strategy === ShippingPriceStrategy.FREE || strategy === ShippingPriceStrategy.MATCH_COURIER_COST) { if (value !== null) throw new Error("This pricing strategy does not accept a pricing value."); return; } if (value === null || value.lessThan(0)) throw new Error("A non-negative pricing value is required for this strategy."); }
-export function handleShippingAdminError(error: unknown) { const message = error instanceof Error ? error.message : "Shipping configuration request failed."; if (message.startsWith("P2002")) return { status: 409, message: "A configuration with these values already exists." }; if (message.startsWith("P2003") || message.startsWith("P2014")) return { status: 409, message: "This configuration is referenced by existing records and cannot be removed." }; return { status: 400, message }; }
-export async function deactivateCourier(id: string) { return db.courier.update({ where: { id }, data: { isActive: false } }); }
-export async function deactivateLocation(id: string) { return db.deliveryLocation.update({ where: { id }, data: { isActive: false } }); }
-export async function deactivateZone(id: string) { return db.deliveryZone.update({ where: { id }, data: { isActive: false } }); }
-export async function deactivateTier(id: string) { return db.packageTier.update({ where: { id }, data: { isActive: false } }); }
-export async function deactivateRate(id: string) { return db.shippingRate.update({ where: { id }, data: { isActive: false } }); }
+export function normalizeShippingText(value:string){return value.trim().replace(/\s+/g," ");}
+export function normalizeShippingCode(value:string){return normalizeShippingText(value).toUpperCase();}
+export function normalizeLocationPart(value:string){return normalizeShippingText(value).toLowerCase();}
+export function parseOptionalInt(value:unknown,field:string){if(value===null||value===undefined||value==="")return null;const parsed=Number(value);if(!Number.isInteger(parsed))throw new Error(`${field} must be an integer.`);return parsed;}
+export function parseNonNegativeInt(value:unknown,field:string){const parsed=Number(value);if(!Number.isInteger(parsed)||parsed<0)throw new Error(`${field} must be a non-negative integer.`);return parsed;}
+export function parseMoney(value:unknown,field:string,allowNull=false){if((value===null||value===undefined||value==="")&&allowNull)return null;const parsed=Number(value);if(!Number.isFinite(parsed)||parsed<0)throw new Error(`${field} must be a non-negative number.`);return new Prisma.Decimal(parsed.toFixed(2));}
+export function validateTierRange(minPoints:number|null,maxPoints:number|null){if(minPoints!==null&&minPoints<0)throw new Error("Minimum points cannot be negative.");if(maxPoints!==null&&maxPoints<0)throw new Error("Maximum points cannot be negative.");if(minPoints!==null&&maxPoints!==null&&minPoints>maxPoints)throw new Error("Minimum points cannot exceed maximum points.");}
+export function validateTierConfiguration(minPoints:number|null,maxPoints:number|null,isCustom:boolean){if(isCustom){if(minPoints!==null||maxPoints!==null)throw new Error("Custom package tiers cannot define point bounds.");return;}if(minPoints===null||maxPoints===null)throw new Error("Standard package tiers require minimum and maximum points.");validateTierRange(minPoints,maxPoints);}
+export async function assertNoOverlappingTier(courierId:string,minPoints:number|null,maxPoints:number|null,excludeId?:string){const tiers=await db.packageTier.findMany({where:{courierId,isActive:true,...(excludeId?{id:{not:excludeId}}:{})},select:{id:true,name:true,minPoints:true,maxPoints:true,isCustom:true}});if(minPoints===null&&maxPoints===null){if(tiers.some(tier=>tier.isCustom&&tier.minPoints===null&&tier.maxPoints===null))throw new Error("An active custom tier already exists for this courier.");return;}const incomingMin=minPoints??Number.NEGATIVE_INFINITY;const incomingMax=maxPoints??Number.POSITIVE_INFINITY;const overlap=tiers.find(tier=>{const existingMin=tier.minPoints??Number.NEGATIVE_INFINITY;const existingMax=tier.maxPoints??Number.POSITIVE_INFINITY;return incomingMin<=existingMax&&existingMin<=incomingMax;});if(overlap)throw new Error(`Tier overlaps the existing tier "${overlap.name}".`);}
+export function validatePricingStrategy(strategy:ShippingPriceStrategy,value:Prisma.Decimal|null){if(strategy===ShippingPriceStrategy.FREE||strategy===ShippingPriceStrategy.MATCH_COURIER_COST){if(value!==null)throw new Error("This pricing strategy does not accept a pricing value.");return;}if(value===null||value.lessThan(0))throw new Error("A non-negative pricing value is required for this strategy.");}
+export function handleShippingAdminError(error:unknown){const message=error instanceof Error?error.message:"Shipping configuration request failed.";if(message.startsWith("P2002"))return {status:409,message:"A configuration with these values already exists."};if(message.startsWith("P2003")||message.startsWith("P2014"))return {status:409,message:"This configuration is referenced by existing records and cannot be removed."};return {status:400,message};}
+export async function deactivateCourier(id:string){return db.courier.update({where:{id},data:{isActive:false}});}
+export async function deactivateLocation(id:string){return db.deliveryLocation.update({where:{id},data:{isActive:false}});}
+export async function deactivateZone(id:string){return db.deliveryZone.update({where:{id},data:{isActive:false}});}
+export async function deactivateTier(id:string){return db.packageTier.update({where:{id},data:{isActive:false}});}
+export async function deactivateRate(id:string){return db.shippingRate.update({where:{id},data:{isActive:false}});}
