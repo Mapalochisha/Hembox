@@ -52,35 +52,20 @@ export const shippingRateFieldsSchema = z.object({
   customerPriceValue: nonNegativeMoneySchema.nullable(),
 });
 
-/**
- * Validate only shipping-related fields on an existing product payload.
- *
- * The product APIs predate the shipping subsystem and contain many unrelated
- * fields. Keeping those fields out of this schema preserves the existing API
- * contract and prevents Zod from turning unrelated values into `unknown` at
- * the call site.
- */
 export function validateProductShippingFields(input: unknown): void {
   if (typeof input !== "object" || input === null) {
     throw new z.ZodError([
-      {
-        code: "custom",
-        path: [],
-        message: "Invalid product payload.",
-      },
+      { code: "custom", path: [], message: "Invalid product payload." },
     ]);
   }
 
   const body = input as Record<string, unknown>;
-
   productShippingFieldsSchema.parse({
     shippingPoints: body.shippingPoints,
     variants: body.variants,
   });
 }
 
-export function productShippingPointsForCreate(
-  value: number | undefined,
-) {
+export function productShippingPointsForCreate(value: number | undefined) {
   return value ?? DEFAULT_PRODUCT_SHIPPING_POINTS;
 }
