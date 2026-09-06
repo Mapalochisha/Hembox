@@ -1,9 +1,14 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+
 const prisma = new PrismaClient();
 
 async function main() {
-  const adminSecret = process.env.HEMBOX_ADMIN_SECRET ?? "change-me";
+  const adminSecret = process.env.HEMBOX_ADMIN_SECRET;
+  if (!adminSecret) {
+    throw new Error("HEMBOX_ADMIN_SECRET must be set before running the seed script");
+  }
+
   const passwordHash = await bcrypt.hash(adminSecret, 12);
   await prisma.adminUser.upsert({
     where: { email: "admin@hembox.com" },
@@ -27,7 +32,7 @@ async function main() {
     await prisma.category.upsert({ where: { slug }, update: {}, create: { name, slug } });
   }
   for (const slug of ["new-arrival", "sale", "bestseller", "featured", "casual", "formal"]) {
-    const name = slug.replace("-", " ").replace(/\\b\\w/g, (l) => l.toUpperCase());
+    const name = slug.replace("-", " ").replace(/\b\w/g, (l) => l.toUpperCase());
     await prisma.tag.upsert({ where: { slug }, update: {}, create: { name, slug } });
   }
 }
