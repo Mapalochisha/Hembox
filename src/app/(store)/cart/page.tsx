@@ -7,9 +7,6 @@ import { Minus, Plus, X } from "lucide-react";
 export default function CartPage() {
   const { items, subtotal, removeItem, updateQuantity, itemCount } = useCart();
 
-  const shipping = subtotal >= 500 ? 0 : 50;
-  const total = subtotal + shipping;
-
   if (items.length === 0) {
     return (
       <div className="px-6 md:px-10 py-24 text-center">
@@ -30,7 +27,6 @@ export default function CartPage() {
       <p className="text-xs opacity-40 tracking-widest mb-10">{itemCount} item{itemCount !== 1 ? "s" : ""}</p>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
-        {/* Items */}
         <div className="md:col-span-2 space-y-1">
           <div className="hidden md:grid grid-cols-12 gap-4 text-[10px] tracking-widest uppercase opacity-35 pb-3 border-b border-gray-100">
             <span className="col-span-6">Product</span>
@@ -79,7 +75,6 @@ export default function CartPage() {
           ))}
         </div>
 
-        {/* Summary */}
         <div className="md:col-span-1">
           <div className="bg-gray-50 rounded-xl p-6 md:sticky md:top-20">
             <h2 className="font-black text-sm tracking-widest uppercase mb-6">Order Summary</h2>
@@ -90,18 +85,11 @@ export default function CartPage() {
               </div>
               <div className="flex justify-between text-xs">
                 <span className="opacity-50">Shipping</span>
-                <span className="font-semibold">
-                  {shipping === 0 ? <span className="text-green-600">Free</span> : `K ${shipping.toFixed(2)}`}
-                </span>
+                <span className="font-semibold opacity-50">Calculated at checkout</span>
               </div>
-              {shipping > 0 && (
-                <p className="text-[10px] opacity-35 leading-relaxed">
-                  Add K {(500 - subtotal).toFixed(2)} more for free shipping
-                </p>
-              )}
               <div className="border-t border-gray-200 pt-3 flex justify-between">
-                <span className="text-xs font-black tracking-widest uppercase">Total</span>
-                <span className="font-black text-base">K {total.toFixed(2)}</span>
+                <span className="text-xs font-black tracking-widest uppercase">Subtotal</span>
+                <span className="font-black text-base">K {subtotal.toFixed(2)}</span>
               </div>
             </div>
             <Link href="/checkout"
@@ -113,7 +101,7 @@ export default function CartPage() {
               Continue Shopping
             </Link>
             <div className="mt-6 space-y-2">
-              <p className="text-[10px] opacity-35 text-center">📦 Free shipping over K 500</p>
+              <p className="text-[10px] opacity-35 text-center">📦 Shipping calculated from your destination</p>
               <p className="text-[10px] opacity-35 text-center">↩ 30-day returns</p>
               <p className="text-[10px] opacity-35 text-center">✓ Secure checkout</p>
             </div>
