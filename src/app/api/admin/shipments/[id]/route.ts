@@ -37,7 +37,9 @@ async function getShipment(id: string) {
           updatedAt: true,
           guestName: true,
           guestEmail: true,
-          shippingAddress: true,
+          // ShippingAddress is structured JSON and must not be rendered
+          // directly by the client. Destination details are already exposed
+          // through the shipment fields below.
           trackingNumber: true,
           notes: true,
           customer: {
