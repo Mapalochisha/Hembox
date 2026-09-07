@@ -45,7 +45,7 @@ export default function AdminLayoutClient({
   const pathname = usePathname();
 
   return (
-    <div className="min-h-screen bg-[#F5F5F0] flex">
+    <div className="min-h-screen min-w-0 bg-[#F5F5F0] flex overflow-x-hidden">
       <aside className={`${isCollapsed ? "w-20" : "w-60"} bg-[#2D2D2D] text-white flex flex-col fixed h-full z-10 transition-all duration-300 ease-in-out`}>
         <div className={`px-6 py-5 border-b border-white/10 relative ${isCollapsed ? "px-4 flex justify-center" : ""}`}>
           {!isCollapsed ? (
@@ -93,8 +93,8 @@ export default function AdminLayoutClient({
           </button>
         </div>
       </aside>
-      <div className={`flex-1 transition-all duration-300 ease-in-out ${isCollapsed ? "ml-20" : "ml-60"}`}>
-        <main className="p-8">{children}</main>
+      <div className={`min-w-0 flex-1 transition-all duration-300 ease-in-out ${isCollapsed ? "ml-20" : "ml-60"}`}>
+        <main className="min-w-0 p-8">{children}</main>
       </div>
     </div>
   );
