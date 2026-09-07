@@ -11,6 +11,25 @@ export type ShipmentIssueType = (typeof SHIPMENT_ISSUE_TYPES)[number];
 export type ShipmentIssueResponsibility = (typeof SHIPMENT_ISSUE_RESPONSIBILITIES)[number];
 export type ShipmentIssueStatus = (typeof SHIPMENT_ISSUE_STATUSES)[number];
 
+type ShipmentIssueRecord = {
+  id: string;
+  shipmentId: string;
+  type: ShipmentIssueType;
+  description: string;
+  responsibility: ShipmentIssueResponsibility;
+  status: ShipmentIssueStatus;
+  resolution: string | null;
+  createdByEmail: string | null;
+  resolvedByEmail: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  resolvedAt: Date | null;
+  shipmentStatus: ShipmentStatus;
+  trackingNumber: string | null;
+  orderNumber: string;
+  events?: unknown[];
+};
+
 export function isShipmentIssueType(value: unknown): value is ShipmentIssueType { return typeof value === "string" && SHIPMENT_ISSUE_TYPES.includes(value as ShipmentIssueType); }
 export function isShipmentIssueResponsibility(value: unknown): value is ShipmentIssueResponsibility { return typeof value === "string" && SHIPMENT_ISSUE_RESPONSIBILITIES.includes(value as ShipmentIssueResponsibility); }
 export function isShipmentIssueStatus(value: unknown): value is ShipmentIssueStatus { return typeof value === "string" && SHIPMENT_ISSUE_STATUSES.includes(value as ShipmentIssueStatus); }
@@ -27,8 +46,8 @@ export function validateIssueUpdate(input: { status?: string; responsibility?: s
 
 function id(): string { return `c${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`; }
 
-export async function listShipmentIssues() {
-  return db.$queryRaw<unknown[]>(Prisma.sql`
+export async function listShipmentIssues(): Promise<ShipmentIssueRecord[]> {
+  return db.$queryRaw<ShipmentIssueRecord[]>(Prisma.sql`
     SELECT i.id, i.shipment_id AS "shipmentId", i.type, i.description, i.responsibility, i.status, i.resolution,
       i.created_by_email AS "createdByEmail", i.resolved_by_email AS "resolvedByEmail", i.created_at AS "createdAt",
       i.updated_at AS "updatedAt", i.resolved_at AS "resolvedAt", s.status AS "shipmentStatus",
@@ -40,8 +59,8 @@ export async function listShipmentIssues() {
   `);
 }
 
-export async function getShipmentIssue(issueId: string) {
-  const issues = await db.$queryRaw<unknown[]>(Prisma.sql`
+export async function getShipmentIssue(issueId: string): Promise<ShipmentIssueRecord | null> {
+  const issues = await db.$queryRaw<ShipmentIssueRecord[]>(Prisma.sql`
     SELECT i.id, i.shipment_id AS "shipmentId", i.type, i.description, i.responsibility, i.status, i.resolution,
       i.created_by_email AS "createdByEmail", i.resolved_by_email AS "resolvedByEmail", i.created_at AS "createdAt",
       i.updated_at AS "updatedAt", i.resolved_at AS "resolvedAt", s.status AS "shipmentStatus",
@@ -52,7 +71,7 @@ export async function getShipmentIssue(issueId: string) {
     WHERE i.id = ${issueId}
     LIMIT 1
   `);
-  const issue = (issues[0] ?? null) as Record<string, unknown> | null;
+  const issue = issues[0] ?? null;
   if (!issue) return null;
   return { ...issue, events: await listShipmentIssueEvents(issueId) };
 }
@@ -80,10 +99,10 @@ export async function createShipmentIssue(input: { shipmentId: string; type: Shi
 export async function updateShipmentIssue(input: { issueId: string; status?: ShipmentIssueStatus; responsibility?: ShipmentIssueResponsibility; description?: string; resolution?: string | null; note?: string | null; adminEmail?: string | null; }) {
   const current = await getShipmentIssue(input.issueId); if (!current) throw new Error("Issue not found");
   const error = validateIssueUpdate(input); if (error) throw new Error(error);
-  const nextStatus = input.status ?? String(current.status) as ShipmentIssueStatus;
-  const nextResponsibility = input.responsibility ?? String(current.responsibility) as ShipmentIssueResponsibility;
-  const nextDescription = input.description?.trim() ?? String(current.description);
-  const nextResolution = input.resolution === undefined ? (current.resolution as string | null) : normalizeIssueText(input.resolution);
+  const nextStatus = input.status ?? current.status;
+  const nextResponsibility = input.responsibility ?? current.responsibility;
+  const nextDescription = input.description?.trim() ?? current.description;
+  const nextResolution = input.resolution === undefined ? current.resolution : normalizeIssueText(input.resolution);
   const statusChanged = input.status !== undefined && input.status !== current.status;
   const responsibilityChanged = input.responsibility !== undefined && input.responsibility !== current.responsibility;
   const meaningfulChange = statusChanged || responsibilityChanged || input.description !== undefined || input.resolution !== undefined || input.note !== undefined;
