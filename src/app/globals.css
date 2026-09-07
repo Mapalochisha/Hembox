@@ -24,6 +24,11 @@ body {
   }
 }
 
+/* Keep native number steppers in the same light visual system as form controls. */
+input[type="number"] {
+  color-scheme: light;
+}
+
 /* Button press animation */
 .btn-press {
   transition: transform 0.1s ease, opacity 0.1s ease;
